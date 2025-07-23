@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BackTag</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: sans-serif;
+      font-family: 'Inter', sans-serif;
       background-color: #f7f1e8;
       color: #111;
       margin: 0;
@@ -17,95 +18,130 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px 40px;
-      font-weight: bold;
+      padding: 24px 48px;
+      font-weight: 600;
+      font-size: 18px;
     }
 
     nav a {
-      margin-left: 20px;
+      margin-left: 24px;
       color: #111;
       text-decoration: none;
     }
 
     .hero {
       display: flex;
-      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      padding: 60px 40px;
+      flex-wrap: wrap;
+      padding: 60px 48px;
     }
 
     .hero h1 {
-      font-size: 40px;
-      margin-bottom: 20px;
+      font-size: 48px;
+      margin-bottom: 24px;
     }
 
     .hero button {
       background-color: #a58c6b;
       color: white;
       border: none;
-      padding: 14px 24px;
+      padding: 14px 28px;
       font-size: 16px;
       border-radius: 8px;
       cursor: pointer;
     }
 
+    .hero img {
+      max-width: 300px;
+      border-radius: 12px;
+    }
+
     .how-it-works {
-      padding: 40px;
-      background-color: #fffaf3;
+      padding: 48px;
     }
 
     .how-it-works h2 {
-      font-size: 24px;
-      margin-bottom: 20px;
+      font-size: 28px;
+      margin-bottom: 32px;
     }
 
-    .how-it-works ul {
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .steps div {
+      width: 30%;
+      text-align: center;
+    }
+
+    .steps p {
+      font-size: 16px;
+    }
+
+    .features {
       list-style: none;
       padding-left: 0;
+      margin-bottom: 24px;
+      line-height: 1.8;
     }
 
-    .how-it-works li {
-      margin-bottom: 10px;
+    .how-it-works h3 {
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .how-it-works button {
+      background-color: #a58c6b;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
     }
 
     .example-box {
       border: 2px solid #111;
-      margin: 40px;
-      padding: 30px;
-      border-radius: 12px;
-      background-color: #f3e9d9;
+      margin: 48px;
+      padding: 32px;
       text-align: center;
+      border-radius: 16px;
+      background-color: #f4ede2;
     }
 
     .example-box button {
-      margin-top: 12px;
       background-color: #111;
       color: white;
-      padding: 12px 20px;
+      padding: 14px 24px;
       border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-top: 10px;
     }
 
     footer {
-      padding: 20px 40px;
+      padding: 24px 48px;
       display: flex;
       justify-content: space-between;
-      background-color: #f3ede3;
       font-size: 14px;
+      background-color: #f3ede3;
     }
 
     footer a {
-      margin-right: 16px;
+      margin-right: 24px;
       text-decoration: none;
       color: #333;
     }
   </style>
 </head>
 <body>
+
   <header>
-    <div>BackTag</div>
+    <div>🟧 BackTag</div>
     <nav>
       <a href="#">Attiva QR</a>
       <a href="#">Come funziona</a>
@@ -118,16 +154,23 @@
       <h1>Trova.<br>Scansiona.<br>Restituisci.</h1>
       <button>Attiva il tuo BackTag</button>
     </div>
+    <img src="https://backtag.it/static/img/busta-backtag.jpg" alt="Busta BackTag">
   </section>
 
   <section class="how-it-works">
     <h2>Come funziona</h2>
-    <ul>
-      <li>🔲 Attacca il QR al tuo oggetto</li>
-      <li>✏️ Registra il QR e scrivi un messaggio</li>
-      <li>💬 Chi lo trova può contattarti in chat</li>
-    </ul>
-    <ul>
+    <div class="steps">
+      <div>
+        <p>🔲<br><strong>Attacca il QR</strong><br>al tuo oggetto</p>
+      </div>
+      <div>
+        <p>✏️<br><strong>Registra il QR</strong><br>e scrivi un messaggio</p>
+      </div>
+      <div>
+        <p>💬<br><strong>Chi lo trova</strong><br>può contattarti in chat</p>
+      </div>
+    </div>
+    <ul class="features">
       <li>Nessuna app da installare</li>
       <li>Nessun dato personale</li>
       <li>Chat anonima integrata</li>
@@ -150,5 +193,7 @@
     </div>
     <div>© 2024 BackTag</div>
   </footer>
+
 </body>
 </html>
+
