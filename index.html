@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BackTag</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f7f1e8;
+      color: #111;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      font-weight: bold;
+    }
+
+    nav a {
+      margin-left: 20px;
+      color: #111;
+      text-decoration: none;
+    }
+
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      padding: 60px 40px;
+    }
+
+    .hero h1 {
+      font-size: 40px;
+      margin-bottom: 20px;
+    }
+
+    .hero button {
+      background-color: #a58c6b;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .how-it-works {
+      padding: 40px;
+      background-color: #fffaf3;
+    }
+
+    .how-it-works h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .how-it-works ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .how-it-works li {
+      margin-bottom: 10px;
+    }
+
+    .example-box {
+      border: 2px solid #111;
+      margin: 40px;
+      padding: 30px;
+      border-radius: 12px;
+      background-color: #f3e9d9;
+      text-align: center;
+    }
+
+    .example-box button {
+      margin-top: 12px;
+      background-color: #111;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    footer {
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      background-color: #f3ede3;
+      font-size: 14px;
+    }
+
+    footer a {
+      margin-right: 16px;
+      text-decoration: none;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>BackTag</div>
+    <nav>
+      <a href="#">Attiva QR</a>
+      <a href="#">Come funziona</a>
+      <a href="#">Contatta</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>Trova.<br>Scansiona.<br>Restituisci.</h1>
+      <button>Attiva il tuo BackTag</button>
+    </div>
+  </section>
+
+  <section class="how-it-works">
+    <h2>Come funziona</h2>
+    <ul>
+      <li>🔲 Attacca il QR al tuo oggetto</li>
+      <li>✏️ Registra il QR e scrivi un messaggio</li>
+      <li>💬 Chi lo trova può contattarti in chat</li>
+    </ul>
+    <ul>
+      <li>Nessuna app da installare</li>
+      <li>Nessun dato personale</li>
+      <li>Chat anonima integrata</li>
+      <li>Premi volontari per chi restituisce</li>
+    </ul>
+    <h3>Proteggi ciò che conta. Inizia ora.</h3>
+    <button>Attiva il tuo QR code</button>
+  </section>
+
+  <section class="example-box">
+    <p>Hai trovato una valigia?</p>
+    <button>Contatta il proprietario</button>
+  </section>
+
+  <footer>
+    <div>
+      <a href="#">Privacy</a>
+      <a href="#">Termini</a>
+      <a href="#">Contatti</a>
+    </div>
+    <div>© 2024 BackTag</div>
+  </footer>
+</body>
+</html>
