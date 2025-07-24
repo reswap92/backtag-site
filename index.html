@@ -24,7 +24,7 @@
     }
 
     header img {
-      height: 80px; /* logo */
+      height: 400px;
     }
 
     nav a {
@@ -72,6 +72,72 @@
       max-width: 340px;
     }
 
+    .how-it-works {
+      padding: 48px;
+    }
+
+    .how-it-works h2 {
+      font-size: 28px;
+      margin-bottom: 32px;
+    }
+
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .steps div {
+      width: 30%;
+      text-align: center;
+    }
+
+    .steps p {
+      font-size: 16px;
+    }
+
+    .features {
+      list-style: none;
+      padding-left: 0;
+      margin-bottom: 24px;
+      line-height: 1.8;
+    }
+
+    .how-it-works h3 {
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .how-it-works button {
+      background-color: #a58c6b;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .example-box {
+      border: 2px solid #111;
+      margin: 48px;
+      padding: 32px;
+      text-align: center;
+      border-radius: 16px;
+      background-color: #f4ede2;
+    }
+
+    .example-box button {
+      background-color: #111;
+      color: white;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
     footer {
       padding: 24px 48px;
       display: flex;
@@ -110,6 +176,34 @@
     </div>
   </section>
 
+  <section class="how-it-works">
+    <h2>Come funziona</h2>
+    <div class="steps">
+      <div>
+        <p>🔲<br><strong>Attacca il QR</strong><br>al tuo oggetto</p>
+      </div>
+      <div>
+        <p>✏️<br><strong>Registra il QR</strong><br>e scrivi un messaggio</p>
+      </div>
+      <div>
+        <p>💬<br><strong>Chi lo trova</strong><br>può contattarti in chat</p>
+      </div>
+    </div>
+    <ul class="features">
+      <li>Nessuna app da installare</li>
+      <li>Nessun dato personale</li>
+      <li>Chat anonima integrata</li>
+      <li>Premi volontari per chi restituisce</li>
+    </ul>
+    <h3>Proteggi ciò che conta. Inizia ora.</h3>
+    <button>Attiva il tuo QR code</button>
+  </section>
+
+  <section class="example-box">
+    <p>Hai trovato una valigia?</p>
+    <button>Contatta il proprietario</button>
+  </section>
+
   <footer>
     <div>
       <a href="#">Privacy</a>
@@ -121,3 +215,4 @@
 
 </body>
 </html>
+
