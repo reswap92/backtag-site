@@ -37,21 +37,16 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 40px 48px 20px 48px;
-      gap: 40px;
+      flex-wrap: wrap;
+      padding: 20px 48px;
     }
 
-    .hero .text {
-      flex: 1;
-    }
-
-    .hero .text h1 {
+    .hero h1 {
       font-size: 48px;
-      margin: 0 0 20px 0;
-      line-height: 1.2;
+      margin-bottom: 24px;
     }
 
-    .hero .text button {
+    .hero button {
       background-color: #a58c6b;
       color: white;
       border: none;
@@ -61,15 +56,9 @@
       cursor: pointer;
     }
 
-    .hero .image {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .hero .image img {
-      max-width: 500px;
+    .hero img.hero-image {
+      max-width: 600px;
+      border-radius: 12px;
     }
 
     .how-it-works {
@@ -91,10 +80,13 @@
     .steps div {
       width: 30%;
       text-align: center;
+      font-size: 16px;
     }
 
-    .steps p {
+    .steps span {
       font-size: 26px;
+      display: block;
+      margin-bottom: 8px;
     }
 
     .features {
@@ -120,15 +112,27 @@
     }
 
     .example-box {
-      border: 2px solid #111;
       margin: 48px;
-      padding: 32px;
       text-align: center;
-      border-radius: 16px;
-      background-color: #f4ede2;
     }
 
-    .example-box button {
+    .found-box {
+      background-color: #f4ede2;
+      border: 2px solid #111;
+      padding: 24px;
+      border-radius: 24px;
+      max-width: 360px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .found-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .found-box button {
       background-color: #111;
       color: white;
       padding: 14px 24px;
@@ -136,6 +140,7 @@
       border-radius: 8px;
       font-size: 16px;
       margin-top: 10px;
+      cursor: pointer;
     }
 
     footer {
@@ -167,26 +172,27 @@
   </header>
 
   <section class="hero">
-    <div class="text">
+    <div>
       <h1>Trova.<br>Scansiona.<br>Restituisci.</h1>
       <button>Attiva il tuo BackTag</button>
     </div>
-    <div class="image">
-      <img src="busta-backtag.png" alt="Busta BackTag">
-    </div>
+    <img src="busta-backtag.png" alt="Busta BackTag" class="hero-image">
   </section>
 
   <section class="how-it-works">
     <h2>Come funziona</h2>
     <div class="steps">
       <div>
-        <p>🔲<br><strong>Attacca il QR</strong><br>al tuo oggetto</p>
+        <span>🔲</span>
+        <strong>Attacca il QR</strong><br>al tuo oggetto
       </div>
       <div>
-        <p>✏️<br><strong>Registra il QR</strong><br>e scrivi un messaggio</p>
+        <span>✏️</span>
+        <strong>Registra il QR</strong><br>e scrivi un messaggio
       </div>
       <div>
-        <p>💬<br><strong>Chi lo trova</strong><br>può contattarti in chat</p>
+        <span>💬</span>
+        <strong>Chi lo trova</strong><br>può contattarti in chat
       </div>
     </div>
     <ul class="features">
@@ -200,8 +206,10 @@
   </section>
 
   <section class="example-box">
-    <p>Hai trovato una valigia?</p>
-    <button>Contatta il proprietario</button>
+    <div class="found-box">
+      <p class="found-title">Hai trovato<br>una valigia?</p>
+      <button>Contatta il proprietario</button>
+    </div>
   </section>
 
   <footer>
@@ -215,4 +223,3 @@
 
 </body>
 </html>
-
