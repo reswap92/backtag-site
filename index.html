@@ -24,7 +24,7 @@
     }
 
     header img {
-      height: 400px;
+      height: 80px; /* logo */
     }
 
     nav a {
@@ -37,95 +37,39 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      padding: 80px 80px;
+      padding: 40px 48px 20px 48px;
+      gap: 40px;
     }
 
-    .hero h1 {
-      font-size: 64px;
-      margin-bottom: 24px;
+    .hero .text {
+      flex: 1;
     }
 
-    .hero button {
+    .hero .text h1 {
+      font-size: 48px;
+      margin: 0 0 20px 0;
+      line-height: 1.2;
+    }
+
+    .hero .text button {
       background-color: #a58c6b;
       color: white;
       border: none;
-      padding: 18px 36px;
-      font-size: 18px;
-      border-radius: 10px;
+      padding: 14px 28px;
+      font-size: 16px;
+      border-radius: 8px;
       cursor: pointer;
     }
 
-    .hero-image {
-      max-width: 400px;
-      height: auto;
-      border-radius: 16px;
-    }
-
-    .how-it-works {
-      padding: 48px;
-    }
-
-    .how-it-works h2 {
-      font-size: 28px;
-      margin-bottom: 32px;
-    }
-
-    .steps {
+    .hero .image {
+      flex: 1;
       display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      margin-bottom: 24px;
+      justify-content: center;
+      align-items: center;
     }
 
-    .steps div {
-      width: 30%;
-      text-align: center;
-    }
-
-    .steps p {
-      font-size: 16px;
-    }
-
-    .features {
-      list-style: none;
-      padding-left: 0;
-      margin-bottom: 24px;
-      line-height: 1.8;
-    }
-
-    .how-it-works h3 {
-      font-size: 22px;
-      margin-bottom: 16px;
-    }
-
-    .how-it-works button {
-      background-color: #a58c6b;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .example-box {
-      border: 2px solid #111;
-      margin: 48px;
-      padding: 32px;
-      text-align: center;
-      border-radius: 16px;
-      background-color: #f4ede2;
-    }
-
-    .example-box button {
-      background-color: #111;
-      color: white;
-      padding: 14px 24px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      margin-top: 10px;
+    .hero .image img {
+      max-width: 340px;
     }
 
     footer {
@@ -157,39 +101,13 @@
   </header>
 
   <section class="hero">
-    <div>
+    <div class="text">
       <h1>Trova.<br>Scansiona.<br>Restituisci.</h1>
       <button>Attiva il tuo BackTag</button>
     </div>
-    <img src="busta-backtag.png" alt="Busta BackTag" class="hero-image">
-  </section>
-
-  <section class="how-it-works">
-    <h2>Come funziona</h2>
-    <div class="steps">
-      <div>
-        <p>🔲<br><strong>Attacca il QR</strong><br>al tuo oggetto</p>
-      </div>
-      <div>
-        <p>✏️<br><strong>Registra il QR</strong><br>e scrivi un messaggio</p>
-      </div>
-      <div>
-        <p>💬<br><strong>Chi lo trova</strong><br>può contattarti in chat</p>
-      </div>
+    <div class="image">
+      <img src="busta-backtag.png" alt="Busta BackTag">
     </div>
-    <ul class="features">
-      <li>Nessuna app da installare</li>
-      <li>Nessun dato personale</li>
-      <li>Chat anonima integrata</li>
-      <li>Premi volontari per chi restituisce</li>
-    </ul>
-    <h3>Proteggi ciò che conta. Inizia ora.</h3>
-    <button>Attiva il tuo QR code</button>
-  </section>
-
-  <section class="example-box">
-    <p>Hai trovato una valigia?</p>
-    <button>Contatta il proprietario</button>
   </section>
 
   <footer>
