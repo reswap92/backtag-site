@@ -35,30 +35,33 @@
 
     .hero {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
-      flex-wrap: wrap;
-      padding: 20px 48px;
+      text-align: center;
+      flex-direction: column;
+      padding: 60px 20px 40px;
     }
 
     .hero h1 {
-      font-size: 48px;
+      font-size: 52px;
       margin-bottom: 24px;
+      line-height: 1.2;
     }
 
     .hero button {
       background-color: #a58c6b;
       color: white;
       border: none;
-      padding: 14px 28px;
+      padding: 16px 32px;
       font-size: 16px;
       border-radius: 8px;
       cursor: pointer;
     }
 
     .hero img.hero-image {
-      max-width: 400px;
+      max-width: 600px;
       border-radius: 12px;
+      margin-top: 48px;
     }
 
     .how-it-works {
@@ -90,18 +93,31 @@
     }
 
     .features {
-      list-style: none;
-      padding-left: 0;
-      margin-bottom: 24px;
+      list-style: disc;
+      margin-left: 24px;
+      margin-bottom: 32px;
       line-height: 1.8;
     }
 
-    .how-it-works h3 {
-      font-size: 22px;
+    .cta-valigia-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0 48px 48px 48px;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+
+    .cta-valigia-left {
+      flex: 1;
+    }
+
+    .cta-valigia-left h3 {
+      font-size: 24px;
       margin-bottom: 16px;
     }
 
-    .how-it-works button {
+    .cta-valigia-left button {
       background-color: #a58c6b;
       color: white;
       border: none;
@@ -111,19 +127,14 @@
       cursor: pointer;
     }
 
-    .example-box {
-      margin: 48px;
-      text-align: center;
-    }
-
     .found-box {
       background-color: #f4ede2;
       border: 2px solid #111;
       padding: 24px;
       border-radius: 24px;
       max-width: 360px;
-      margin: 0 auto;
       text-align: center;
+      flex-shrink: 0;
     }
 
     .found-title {
@@ -172,10 +183,8 @@
   </header>
 
   <section class="hero">
-    <div>
-      <h1>Trova.<br>Scansiona.<br>Restituisci.</h1>
-      <button>Attiva il tuo BackTag</button>
-    </div>
+    <h1>Trova.<br>Scansiona.<br>Restituisci.</h1>
+    <button>Attiva il tuo BackTag</button>
     <img src="busta-backtag.png" alt="Busta BackTag" class="hero-image">
   </section>
 
@@ -201,11 +210,13 @@
       <li>Chat anonima integrata</li>
       <li>Premi volontari per chi restituisce</li>
     </ul>
-    <h3>Proteggi ciò che conta. Inizia ora.</h3>
-    <button>Attiva il tuo QR code</button>
   </section>
 
-  <section class="example-box">
+  <section class="cta-valigia-section">
+    <div class="cta-valigia-left">
+      <h3>Proteggi ciò che conta. Inizia ora.</h3>
+      <button>Attiva il tuo QR code</button>
+    </div>
     <div class="found-box">
       <p class="found-title">Hai trovato<br>una valigia?</p>
       <button>Contatta il proprietario</button>
@@ -223,3 +234,4 @@
 
 </body>
 </html>
+
