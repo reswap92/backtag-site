@@ -1,14 +1,13 @@
 <!DOCTYPE html><html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BackTag</title>
   <style>
     body {
+      font-family: Arial, sans-serif;
       margin: 0;
-      font-family: 'Arial', sans-serif;
-      background-color: #fdfdfb;
-      color: #000;
+      padding: 0;
     }
     header {
       display: flex;
@@ -16,27 +15,28 @@
       align-items: center;
       padding: 20px 30px;
     }
-    .logo {
-      height: 400px;
+    header img {
+      max-width: 400px;
     }
     nav a {
       margin-left: 20px;
       text-decoration: none;
-      color: #000;
+      color: black;
       font-weight: bold;
-      font-size: 18px;
     }
     .hero {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       padding: 30px;
+      flex-wrap: wrap;
     }
     .hero-text {
-      max-width: 50%;
+      flex: 1;
+      margin-right: 30px;
     }
     .hero-text h1 {
-      font-size: 64px;
+      font-size: 300px;
       font-weight: bold;
       margin-bottom: 20px;
     }
@@ -50,12 +50,35 @@
       font-size: 16px;
       cursor: pointer;
     }
+    .valigia-box {
+      position: relative;
+      margin-top: 20px;
+      max-width: 600px;
+      padding: 20px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      width: 100%;
+      font-weight: bold;
+    }
+    .valigia-box p {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .valigia-box button {
+      background-color: black;
+      color: white;
+      padding: 15px 30px;
+      font-weight: bold;
+      border: none;
+      margin-top: 15px;
+      cursor: pointer;
+    }
     .hero-image {
-      max-width: 760px;
-      margin-left: 80px;
+      max-width: 600px;
     }
     .funzione {
-      padding: 40px 30px;
+      text-align: center;
+      padding: 60px 30px;
     }
     .funzione h2 {
       font-size: 32px;
@@ -63,25 +86,32 @@
     }
     .icone {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
+      gap: 50px;
       margin-top: 30px;
+      flex-wrap: wrap;
     }
-    .step {
+    .icone div {
       text-align: center;
-      font-size: 18px;
+      max-width: 200px;
     }
-    .step-icon {
-      font-size: 26px;
-      margin-bottom: 10px;
+    .icone img {
+      width: 26px;
     }
-    .dettagli {
-      font-size: 18px;
+    .icone p {
       font-weight: bold;
-      margin: 10px 0;
+      font-size: 18px;
+    }
+    ul.vantaggi {
+      list-style-type: disc;
+      text-align: left;
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 18px;
     }
     .cta {
-      margin-top: 40px;
-      padding-left: 30px;
+      text-align: center;
+      margin-top: 60px;
     }
     .cta h3 {
       font-size: 24px;
@@ -98,74 +128,60 @@
       margin-top: 10px;
       cursor: pointer;
     }
-    .valigia-box {
-      position: absolute;
-      bottom: 300px;
-      right: 60px;
-      border: 2px solid #333;
-      border-radius: 10px;
+    footer {
+      text-align: center;
       padding: 20px;
-      max-width: 250px;
-    }
-    .valigia-box p {
-      font-weight: bold;
-      font-size: 18px;
-    }
-    .valigia-box button {
-      background-color: black;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      margin-top: 10px;
-      font-weight: bold;
-      cursor: pointer;
+      font-size: 14px;
+      color: #777;
     }
   </style>
 </head>
 <body>
   <header>
-    <img src="logo-backtag.png" alt="BackTag Logo" class="logo">
+    <img src="logo.png" alt="BackTag Logo" />
     <nav>
       <a href="attiva.html">Attiva QR</a>
-      <a href="#funziona">Come funziona</a>
+      <a href="funziona.html">Come funziona</a>
       <a href="contatta.html">Contatta</a>
     </nav>
   </header> <section class="hero">
     <div class="hero-text">
-      <h1>Trova. Scansiona. Restituisci.</h1>
-      <button onclick="location.href='attiva.html'">Attiva il tuo BackTag</button>
+      <h1 style="font-size: 64px">Trova. Scansiona. Restituisci.</h1>
+      <button onclick="window.location.href='attiva.html'">Attiva il tuo BackTag</button>
+      <div class="valigia-box">
+        <p>Hai trovato una valigia?</p>
+        <button onclick="window.location.href='contatta.html'">Contatta il proprietario</button>
+      </div>
     </div>
-    <img src="busta-backtag.png" alt="BackTag busta" class="hero-image">
-  </section> <section class="funzione" id="funziona">
+    <img class="hero-image" src="busta.png" alt="Busta BackTag" />
+  </section> <section class="funzione">
     <h2>Come funziona</h2>
     <div class="icone">
-      <div class="step">
-        <div class="step-icon">📦</div>
-        <p><strong>Attacca il QR</strong><br>al tuo oggetto</p>
+      <div>
+        <img src="icona1.png" alt="Attacca" />
+        <p>Attacca il QR al tuo oggetto</p>
       </div>
-      <div class="step">
-        <div class="step-icon">✏️</div>
-        <p><strong>Registra il QR</strong><br>e scrivi un messaggio</p>
+      <div>
+        <img src="icona2.png" alt="Registra" />
+        <p>Registra il QR e scrivi un messaggio</p>
       </div>
-      <div class="step">
-        <div class="step-icon">💬</div>
-        <p><strong>Chi lo trova</strong><br>può contattarti in chat</p>
+      <div>
+        <img src="icona3.png" alt="Chat" />
+        <p>Chi lo trova può contattarti in chat</p>
       </div>
     </div>
-    <div class="dettagli">
-      <ul>
-        <li>Nessuna app da installare</li>
-        <li>Nessun dato personale</li>
-        <li>Chat anonima integrata</li>
-        <li>Premi volontari per chi restituisce</li>
-      </ul>
-    </div>
+    <ul class="vantaggi">
+      <li>Nessuna app da installare</li>
+      <li>Nessun dato personale</li>
+      <li>Chat anonima integrata</li>
+      <li>Premi volontari per chi restituisce</li>
+    </ul>
   </section> <section class="cta">
     <h3>Proteggi ciò che conta. Inizia ora.</h3>
-    <button onclick="location.href='attiva.html'">Attiva il tuo QR code</button>
-  </section> <div class="valigia-box">
-    <p>Hai trovato una valigia?</p>
-    <button onclick="location.href='contatta.html'">Contatta il proprietario</button>
-  </div>
+    <button onclick="window.location.href='attiva.html'">Attiva il tuo QR code</button>
+  </section> <footer>
+    <p>Privacy | Termini | Contatti</p>
+    <p>© 2024 BackTag</p>
+  </footer>
 </body>
 </html>
