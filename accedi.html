@@ -1,75 +1,116 @@
-<!DOCTYPE html><html lang="it">
+<!DOCTYPE html>
+<html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Accedi - BackTag</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Accedi al tuo account - BackTag</title>
   <style>
     body {
       margin: 0;
+      padding: 0;
       font-family: Arial, sans-serif;
-      background-color: #f7eada;
+      background-color: #f5ede0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
       text-align: center;
-    }.logo {
-  width: 180px;
-  margin-bottom: 40px;
-}
+      color: #000;
+    }
 
-h1 {
-  font-size: 36px;
-  font-weight: bold;
-  margin: 0;
-}
+    header {
+      width: 100%;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-sizing: border-box;
+    }
 
-h2 {
-  font-size: 24px;
-  margin-top: 10px;
-  margin-bottom: 30px;
-}
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-input[type="email"] {
-  padding: 15px;
-  font-size: 18px;
-  width: 300px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  margin-bottom: 20px;
-}
+    .logo img {
+      width: 40px;
+    }
 
-button {
-  background-color: black;
-  color: white;
-  padding: 15px 40px;
-  font-size: 18px;
-  border: none;
-  border-radius: 10px;
-  font-weight: bold;
-  cursor: pointer;
-}
+    .logo span {
+      font-size: 28px;
+      font-weight: bold;
+    }
 
-p {
-  margin-top: 30px;
-  font-size: 16px;
-}
+    .content {
+      margin-top: 60px;
+      width: 90%;
+      max-width: 400px;
+    }
 
-a {
-  font-weight: bold;
-  color: black;
-  text-decoration: underline;
-}
+    h1 {
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
 
+    h2 {
+      font-size: 22px;
+      margin-bottom: 30px;
+      font-weight: normal;
+    }
+
+    input[type="email"] {
+      width: 100%;
+      padding: 16px;
+      font-size: 18px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      width: 100%;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      background-color: #000;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-bottom: 30px;
+    }
+
+    .bottom-text {
+      font-size: 16px;
+    }
+
+    .bottom-text a {
+      font-weight: bold;
+      color: black;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
-  <img class="logo" src="logo-backtag.png" alt="BackTag Logo"> <h1>Accedi al tuo<br>BackTag</h1>
-  <h2>Inserisci il tuo indirizzo email<br>per accedere</h2> <form action="#">
-    <input type="email" placeholder="Indirizzo email" required />
-    <br />
-    <button type="submit">Continua</button>
-  </form> <p>Nessun account? <a href="#">Registrati</a></p>
+  <header>
+    <div class="logo">
+      <img src="logo-backtag.png" alt="Logo BackTag" />
+      <span>BackTag</span>
+    </div>
+  </header>
+
+  <div class="content">
+    <h1>Accedi al tuo<br>BackTag</h1>
+    <h2>Inserisci il tuo indirizzo email<br>per accedere</h2>
+
+    <input type="email" placeholder="Indirizzo email" />
+
+    <button>Continua</button>
+
+    <div class="bottom-text">
+      Nessun account? <a href="#">Registrati</a>
+    </div>
+  </div>
 </body>
 </html>
