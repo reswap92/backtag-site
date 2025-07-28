@@ -1,0 +1,136 @@
+<!DOCTYPE html><html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profilo - BackTag</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f0e7;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+}
+
+.logo img {
+  height: 40px;
+}
+
+.logout-button {
+  background-color: #000;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+h1 {
+  font-size: 32px;
+  margin-top: 10px;
+}
+
+.slot-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin: 40px auto;
+  max-width: 800px;
+}
+
+.slot {
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.slot button {
+  background-color: #a58c6b;
+  color: white;
+  font-size: 32px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.slot-label {
+  font-weight: bold;
+  margin-top: 12px;
+  font-size: 16px;
+  color: #444;
+}
+
+.add-slot-container {
+  margin-top: 40px;
+}
+
+.add-slot-button {
+  background-color: #d3b277;
+  color: white;
+  font-size: 36px;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  width: 150px;
+  height: 150px;
+  cursor: pointer;
+}
+
+.buy-info {
+  font-size: 14px;
+  color: #555;
+  margin-top: 10px;
+}
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <img src="logo-backtag.png" alt="Logo BackTag">
+    </div>
+    <button class="logout-button" onclick="location.href='index.html'">Esci</button>
+  </header> <h1>QR attivi</h1> <div class="slot-container">
+    <div class="slot">
+      <button onclick="location.href='attiva.html'">+</button>
+      <div class="slot-label">Attiva un QR</div>
+    </div>
+    <div class="slot">
+      <button onclick="location.href='attiva.html'">+</button>
+      <div class="slot-label">Attiva un QR</div>
+    </div>
+    <div class="slot">
+      <button onclick="location.href='attiva.html'">+</button>
+      <div class="slot-label">Attiva un QR</div>
+    </div>
+    <div class="slot">
+      <button onclick="location.href='attiva.html'">+</button>
+      <div class="slot-label">Attiva un QR</div>
+    </div>
+    <div class="slot">
+      <button onclick="location.href='attiva.html'">+</button>
+      <div class="slot-label">Attiva un QR</div>
+    </div>
+    <div class="slot">
+      <button onclick="location.href='attiva.html'">+</button>
+      <div class="slot-label">Attiva un QR</div>
+    </div>
+  </div> <div class="add-slot-container">
+    <button class="add-slot-button" onclick="alert('Acquisto 10 slot a 0,99€')">+</button>
+    <div class="buy-info">Aggiungi 10 slot per 0,99€</div>
+  </div>
+</body>
+</html>
