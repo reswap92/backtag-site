@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifica OTP - BackTag</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fefaf6;
+      text-align: center;
+      padding: 30px;
+      margin: 0;
+    }
+    .logo {
+      width: 80px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 40px;
+      font-weight: bold;
+      margin: 0;
+    }
+    p {
+      font-size: 18px;
+      margin-top: 15px;
+      margin-bottom: 30px;
+    }
+    input[type="text"] {
+      font-size: 28px;
+      text-align: center;
+      letter-spacing: 10px;
+      padding: 15px;
+      width: 320px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+    }
+    .resend {
+      font-size: 16px;
+      margin-bottom: 30px;
+    }
+    .button-container {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      border: none;
+    }
+    .back {
+      background-color: white;
+      color: black;
+      border: 2px solid black;
+    }
+    .confirm {
+      background-color: black;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
+  <h1>Verifica la tua identità</h1>
+  <p>Abbiamo inviato un codice di verifica al tuo indirizzo email. Inseriscilo qui sotto per continuare.</p>
+  <input type="text" maxlength="6" placeholder="------" />
+  <p class="resend">Non hai ricevuto il codice? Invia di nuovo</p>
+  <div class="button-container">
+    <button class="back" onclick="location.href='accedi.html'">Torna indietro</button>
+    <button class="confirm">Conferma</button>
+  </div>
+</body>
+</html>
