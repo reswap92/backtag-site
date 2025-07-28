@@ -58,12 +58,41 @@
   <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
   <h1>Accedi al tuo <br>BackTag</h1>
   <h2>Inserisci il tuo indirizzo email <br>per accedere</h2>
-  <input type="email" placeholder="Indirizzo email" />
+  <input type="email" id="email" 
+  placeholder="Indirizzo email" />
   <br>
   <button
-  onclick="location.href='verifica.html'">Continua</button>
+  onclick="inviaOTP()">Continua</
+  button>
   <div class="text-bottom">
     Nessun account? <a href="#">Registrati</a>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script>
+  (function(){
+    emailjs.init("B7ss6UqQDdrNt11Af"); // tuo Public Key
+  })();
+
+  function inviaOTP() {
+    const emailUtente = document.getElementById("email").value;
+    const codiceOTP = Math.floor(100000 + Math.random() * 900000); // OTP 6 cifre
+
+    localStorage.setItem("otp", codiceOTP); // salva l'OTP per il confronto
+
+    const templateParams = {
+      to_email: emailUtente,
+      passcode: codiceOTP
+    };
+
+    emailjs.send("service_jjllcmg", "template_otp", templateParams)
+      .then(function(response) {
+        console.log("Email inviata!", response.status, response.text);
+        window.location.href = "verifica.html";
+      }, function(error) {
+        console.log("Errore invio email", error);
+        alert("Errore invio email, riprova.");
+      });
+  }
+</script>
 </body>
 </html>
