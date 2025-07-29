@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="it">
+<!DOCTYPE html>
+<html lang="it">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -68,11 +69,121 @@
   <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
   <h1>Verifica la tua identità</h1>
   <p>Abbiamo inviato un codice di verifica al tuo indirizzo email. Inseriscilo qui sotto per continuare.</p>
-  <input type="text" maxlength="6" placeholder="------" />
+
+  <input type="text" id="otp-input" maxlength="6" placeholder="------" />
+
   <p class="resend">Non hai ricevuto il codice? Invia di nuovo</p>
+
   <div class="button-container">
     <button class="back" onclick="location.href='accedi.html'">Torna indietro</button>
-    <button class="confirm">Conferma</button>
+    <button class="confirm" onclick="verificaOTP()">Conferma</button>
   </div>
+
+  <script>
+    function verificaOTP() {
+      const otpInserito = document.getElementById("otp-input").value.trim();
+      const otpSalvato = localStorage.getItem("otp");
+
+      if (!otpInserito) {
+        alert("Inserisci il codice OTP.");
+        return;
+      }
+
+      if (otpInserito === otpSalvato) {
+        // Rimuovi OTP salvato (opzionale)
+        localStorage.removeItem("otp");
+
+        // Reindirizza alla pagina profilo
+        window.location.href = "profilo.html";
+      } else {
+        alert("Il codice inserito non è corretto. Riprova.");
+      }
+    }
+  </script>
 </body>
 </html>
+
+Inviato da iPhone
+
+> Il giorno 29 lug 2025, alle ore 22:04, Vincenzo Russo <vincenzorusso.0510@gmail.com> ha scritto:
+>
+> ﻿
+> <!DOCTYPE html><html lang="it">
+> <head>
+>   <meta charset="UTF-8" />
+>   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+>   <title>Verifica OTP - BackTag</title>
+>   <style>
+>     body {
+>       font-family: Arial, sans-serif;
+>       background-color: #fefaf6;
+>       text-align: center;
+>       padding: 30px;
+>       margin: 0;
+>     }
+>     .logo {
+>       width: 400px;
+>       margin-bottom: 20px;
+>     }
+>     h1 {
+>       font-size: 40px;
+>       font-weight: bold;
+>       margin: 0;
+>     }
+>     p {
+>       font-size: 18px;
+>       margin-top: 15px;
+>       margin-bottom: 30px;
+>     }
+>     input[type="text"] {
+>       font-size: 28px;
+>       text-align: center;
+>       letter-spacing: 10px;
+>       padding: 15px;
+>       width: 320px;
+>       border-radius: 10px;
+>       border: 1px solid #ccc;
+>       margin-bottom: 20px;
+>     }
+>     .resend {
+>       font-size: 16px;
+>       margin-bottom: 30px;
+>     }
+>     .button-container {
+>       display: flex;
+>       justify-content: center;
+>       gap: 15px;
+>       flex-wrap: wrap;
+>     }
+>     button {
+>       padding: 15px 30px;
+>       font-size: 18px;
+>       border-radius: 10px;
+>       cursor: pointer;
+>       font-weight: bold;
+>       border: none;
+>     }
+>     .back {
+>       background-color: white;
+>       color: black;
+>       border: 2px solid black;
+>     }
+>     .confirm {
+>       background-color: black;
+>       color: white;
+>     }
+>   </style>
+> </head>
+> <body>
+>   <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
+>   <h1>Verifica la tua identità</h1>
+>   <p>Abbiamo inviato un codice di verifica al tuo indirizzo email. Inseriscilo qui sotto per continuare.</p>
+>   <input type="text" maxlength="6" placeholder="------" />
+>   <p class="resend">Non hai ricevuto il codice? Invia di nuovo</p>
+>   <div class="button-container">
+>     <button class="back" onclick="location.href='accedi.html'">Torna indietro</button>
+>     <button class="confirm">Conferma</button>
+>   </div>
+> </body>
+> </html>
+
