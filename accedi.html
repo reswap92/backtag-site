@@ -58,41 +58,41 @@
   <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
   <h1>Accedi al tuo <br>BackTag</h1>
   <h2>Inserisci il tuo indirizzo email <br>per accedere</h2>
-  <input type="email" id="email" 
-  placeholder="Indirizzo email" />
+  <input type="email" id="email" placeholder="Indirizzo email" />
   <br>
-  <button
-  onclick="inviaOTP()">Continua</
-  button>
+  <button onclick="inviaOTP()">Continua</button>
   <div class="text-bottom">
     Nessun account? <a href="#">Registrati</a>
   </div>
+
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-<script>
-  (function(){
-    emailjs.init("B7ss6UqQDdrNt11Af"); // tuo Public Key
-  })();
+  <script>
+    (function(){
+      emailjs.init("B7ss6UqQDdrNt11Af"); // Public Key
+    })();
 
-  function inviaOTP() {
-    const emailUtente = document.getElementById("email").value;
-    const codiceOTP = Math.floor(100000 + Math.random() * 900000); // OTP 6 cifre
+    function inviaOTP() {
+      const emailUtente = document.getElementById("email").value;
+      const codiceOTP = Math.floor(100000 + Math.random() * 900000);
 
-    localStorage.setItem("otp", codiceOTP); // salva l'OTP per il confronto
+      localStorage.setItem("otp", codiceOTP);
 
-    const templateParams = {
-      to_email: emailUtente,
-      passcode: codiceOTP
-    };
+      const templateParams = {
+        to_email: emailUtente,
+        passcode: codiceOTP
+      };
 
-    emailjs.send("service_jjllcmg", "template_5v5zg37", templateParams)
-      .then(function(response) {
-        console.log("Email inviata!", response.status, response.text);
-        window.location.href = "verifica.html";
-      }, function(error) {
-        console.log("Errore invio email", error);
-        alert("Errore invio email, riprova.");
-      });
-  }
-</script>
+      console.log("Invio email a:", emailUtente, "Codice OTP:", codiceOTP);
+
+      emailjs.send("service_jjllcmg", "template_5v5zg37", templateParams)
+        .then(function(response) {
+          console.log("Email inviata!", response.status, response.text);
+          window.location.href = "verifica.html";
+        }, function(error) {
+          console.log("Errore invio email", error);
+          alert("Errore invio email: " + JSON.stringify(error));
+        });
+    }
+  </script>
 </body>
 </html>
