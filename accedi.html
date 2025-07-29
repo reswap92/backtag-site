@@ -72,17 +72,20 @@
     })();
 
     function inviaOTP() {
-      const emailUtente = document.getElementById("email").value;
-      const codiceOTP = Math.floor(100000 + Math.random() * 900000);
+      const emailUtente = document.getElementById("email").value.trim();
 
-      localStorage.setItem("otp", codiceOTP);
+      if (!emailUtente) {
+        alert("Inserisci un'email valida");
+        return;
+      }
+
+      const codiceOTP = Math.floor(100000 + Math.random() * 900000); // OTP 6 cifre
+      localStorage.setItem("otp", codiceOTP); // salva OTP per verifica
 
       const templateParams = {
-        to_email: emailUtente,
+        to_email: emailUtente, // DEVE coincidere con il template EmailJS
         passcode: codiceOTP
       };
-
-      console.log("Invio email a:", emailUtente, "Codice OTP:", codiceOTP);
 
       emailjs.send("service_jjllcmg", "template_5v5zg37", templateParams)
         .then(function(response) {
@@ -90,7 +93,7 @@
           window.location.href = "verifica.html";
         }, function(error) {
           console.log("Errore invio email", error);
-          alert("Errore invio email: " + JSON.stringify(error));
+          alert("Errore invio email: " + error.text);
         });
     }
   </script>
