@@ -58,29 +58,37 @@
   <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
   <h1>Accedi al tuo <br>BackTag</h1>
   <h2>Inserisci il tuo indirizzo email <br>per accedere</h2>
+
+  <!-- CAMPO EMAIL -->
   <input type="email" id="email" placeholder="Indirizzo email" />
   <br>
+
+  <!-- PULSANTE -->
   <button onclick="inviaOTP()">Continua</button>
+
   <div class="text-bottom">
     Nessun account? <a href="#">Registrati</a>
   </div>
 
+  <!-- SCRIPT EMAILJS -->
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
   <script>
     (function(){
-      emailjs.init("B7ss6UqQDdrNt11Af"); // Tuo Public Key
+      emailjs.init("B7ss6UqQDdrNt11Af"); // Tua Public Key
     })();
 
     function inviaOTP() {
       const emailUtente = document.getElementById("email").value.trim();
+      console.log("Email inserita:", emailUtente);
 
-      // ✅ Controllo email
-      if (!emailUtente || !emailUtente.includes("@")) {
-        alert("Inserisci un indirizzo email valido");
+      if (!emailUtente) {
+        alert("Per favore inserisci la tua email");
         return;
       }
 
       const codiceOTP = Math.floor(100000 + Math.random() * 900000); // OTP 6 cifre
+      console.log("OTP generato:", codiceOTP);
+
       localStorage.setItem("otp", codiceOTP);
 
       const templateParams = {
@@ -88,17 +96,14 @@
         passcode: codiceOTP
       };
 
-      // ✅ Log di debug
-      console.log("Email inserita:", emailUtente);
       console.log("Parametri inviati a EmailJS:", templateParams);
 
       emailjs.send("service_jjllcmg", "template_5v5zg37", templateParams)
         .then(function(response) {
-          console.log("Email inviata!", response.status, response.text);
+          console.log("✅ Email inviata con successo:", response);
           window.location.href = "verifica.html";
-        })
-        .catch(function(error) {
-          console.error("Errore invio email:", error);
+        }, function(error) {
+          console.error("❌ Errore invio email:", error);
           alert("Errore invio email: " + JSON.stringify(error));
         });
     }
