@@ -28,22 +28,21 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const slotContainer = document.getElementById("slotContainer");
-    const userEmail = localStorage.getItem("email");
+    window.onload = async () => {
+      const slotContainer = document.getElementById("slotContainer");
+      const userEmail = localStorage.getItem("email");
 
-    if (!userEmail) {
-      slotContainer.innerHTML = "<p>Non sei autenticato. Torna su <a href='accedi.html'>accedi.html</a></p>";
-    } else {
-      loadSlots(userEmail);
-    }
+      if (!userEmail) {
+        slotContainer.innerHTML = "<p>Non sei autenticato. Torna su <a href='accedi.html'>accedi.html</a></p>";
+        return;
+      }
 
-    async function loadSlots(email) {
       const qrRef = collection(db, "qrcodes");
-      const q = query(qrRef, where("email", "==", email));
+      const q = query(qrRef, where("email", "==", userEmail));
       const snapshot = await getDocs(q);
       const qrList = snapshot.docs.map(doc => doc.data());
 
-      slotContainer.innerHTML = ""; // svuota
+      slotContainer.innerHTML = "";
 
       for (let i = 0; i < 6; i++) {
         const qr = qrList.find(qr => qr.slotIndex === i);
@@ -65,7 +64,7 @@
 
         slotContainer.appendChild(div);
       }
-    }
+    };
   </script>
 
   <style>
@@ -138,13 +137,4 @@
     <div class="logo">
       <img src="logo-backtag.png" alt="Logo BackTag">
     </div>
-    <button class="logout-button" onclick="location.href='index.html'">Esci</button>
-  </header>
-
-  <h1>QR attivi</h1>
-
-  <div class="slot-container" id="slotContainer">
-    <p>Caricamento slot...</p>
-  </div>
-</body>
-</html>
+    <button class="logout-button" onclick="lo
