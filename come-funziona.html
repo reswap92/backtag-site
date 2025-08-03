@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Come funziona - BackTag</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Helvetica Neue', sans-serif;
+      background-color: #fdf6ec;
+      color: #111;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.2em;
+      margin-bottom: 10px;
+    }
+    p.subtitle {
+      font-size: 1.2em;
+      margin-bottom: 40px;
+      color: #444;
+    }
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .step-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    .step-title {
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-bottom: 6px;
+    }
+    .step-description {
+      max-width: 300px;
+      font-size: 0.95em;
+      color: #333;
+    }
+    .button {
+      margin-top: 40px;
+      padding: 14px 24px;
+      font-size: 1em;
+      background-color: #c5974d;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="logo.svg" alt="BackTag Logo" style="height: 48px; margin-bottom: 20px;">
+    <h1>Cos’è BackTag</h1>
+    <p class="subtitle">Un modo semplice per facilitare la restituzione dei tuoi oggetti smarriti.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-icon">📍</div>
+        <div class="step-title">Trova</div>
+        <div class="step-description">Applica i nostri adesivi con codice QR ai tuoi oggetti</div>
+      </div>
+
+      <div class="step">
+        <div class="step-icon">📷</div>
+        <div class="step-title">Scansiona</div>
+        <div class="step-description">Chi trova uno dei tuoi oggetti scannerizza il QR</div>
+      </div>
+
+      <div class="step">
+        <div class="step-icon">💬</div>
+        <div class="step-title">Restituisci</div>
+        <div class="step-description">Potrà contattarti per organizzare la restituzione</div>
+      </div>
+    </div>
+
+    <button class="button" onclick="window.location.href='/registrazione'">Attiva il tuo BackTag</button>
+  </div>
+</body>
+</html>
