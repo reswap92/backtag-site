@@ -1,100 +1,143 @@
-<!DOCTYPE html><html lang="it">
+<!DOCTYPE html>
+<html lang="it">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Attiva il tuo BackTag</title>
+  <title>Attiva QR - BackTag</title>
+  <script type="module">
+    // Importa Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      query,
+      where
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // Configurazione Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.firebasestorage.app",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
+
+    // Inizializza Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUserEmail = null;
+
+    // Rileva utente loggato
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUserEmail = user.email;
+        document.getElementById("form-area").style.display = "block";
+        document.getElementById("login-area").style.display = "none";
+      }
+    });
+
+    // Login o registrazione
+    window.loginUser = async () => {
+      const email = document.getElementById("email").value;
+      try {
+        await signInWithEmailAndPassword(auth, email, "defaultpassword");
+      } catch (error) {
+        if (error.code === "auth/user-not-found") {
+          await createUserWithEmailAndPassword(auth, email, "defaultpassword");
+        } else {
+          alert("Errore login: " + error.message);
+        }
+      }
+    };
+
+    // Attivazione QR
+    window.attivaQR = async () => {
+      const code = document.getElementById("code").value.trim();
+      const label = document.getElementById("label").value.trim();
+      if (!code || !label) return alert("Compila tutti i campi");
+
+      const qrRef = collection(db, "qrcodes");
+
+      // Controlla slot usati
+      const q = query(qrRef, where("email", "==", currentUserEmail));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.size >= 6) {
+        alert("Hai già usato tutti e 6 gli slot disponibili");
+        return;
+      }
+
+      await addDoc(qrRef, {
+        code,
+        label,
+        email: currentUserEmail,
+        createdAt: new Date()
+      });
+
+      alert("QR attivato con successo!");
+      window.location.href = "profilo.html";
+    };
+  </script>
+
   <style>
     body {
-      margin: 0;
       font-family: Arial, sans-serif;
-      background-color: #f4ede7;
-      color: #000;
+      background-color: #fefaf6;
+      padding: 40px;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 12px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #a6947c;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    h2 {
       text-align: center;
-      padding: 0 20px;
-    }.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-}
-
-.navbar img {
-  height: 400px;
-}
-
-.nav-links {
-  font-weight: bold;
-  display: flex;
-  gap: 20px;
-}
-
-h1 {
-  font-size: 42px;
-  font-weight: bold;
-  margin-top: 40px;
-  margin-bottom: 10px;
-}
-
-h2 {
-  font-size: 28px;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-
-p {
-  font-size: 20px;
-  margin-bottom: 40px;
-}
-
-input[type="text"] {
-  padding: 15px;
-  width: 100%;
-  max-width: 500px;
-  font-size: 18px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  margin-bottom: 20px;
-}
-
-button {
-  padding: 15px 30px;
-  font-size: 18px;
-  font-weight: bold;
-  background-color: #000;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  margin-bottom: 40px;
-}
-
-.link {
-  font-size: 18px;
-  margin-top: 20px;
-}
-
-.link a {
-  font-weight: bold;
-  color: #000;
-  text-decoration: underline;
-}
-
+    }
   </style>
 </head>
 <body>
-  <div class="navbar">
-    <img src="logo-backtag.png" alt="BackTag logo">
-    <div class="nav-links">
-      <div>I miei BackTag</div>
-      <div>Esci</div>
+  <div class="container">
+    <h2>Attiva il tuo QR</h2>
+
+    <div id="login-area">
+      <input type="email" id="email" placeholder="Inserisci la tua email" />
+      <button onclick="loginUser()">Accedi / Registrati</button>
     </div>
-  </div> <h1>Attiva il tuo</h1>
-  <h2>BackTag</h2>
-  <p>Inserisci il codice del tuo QR per attivarlo</p> <input type="text" placeholder="Codice QR" />
-  <br>
-  <button>Attiva</button> <div class="link">
-    Ancora nessun codice?<br>
-    <a href="#">Ordina i tuoi BackTag</a>
+
+    <div id="form-area" style="display: none;">
+      <input type="text" id="code" placeholder="Codice QR (es. ABC123)" />
+      <input type="text" id="label" placeholder="Nome oggetto (es. Zaino)" />
+      <button onclick="attivaQR()">Attiva QR</button>
+    </div>
   </div>
 </body>
 </html>
