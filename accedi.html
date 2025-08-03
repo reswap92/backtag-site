@@ -3,14 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Accedi - BackTag</title>
+  <title>Accedi al tuo BackTag</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getAuth,
-      sendSignInLinkToEmail,
-      isSignInWithEmailLink
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
@@ -26,18 +22,24 @@
     const auth = getAuth(app);
 
     const actionCodeSettings = {
-      url: 'https://reswap92.github.io/verifica.html', // Cambia con il tuo URL di verifica
+      url: 'https://reswap92.github.io/verifica.html',
       handleCodeInApp: true
     };
 
-    window.inviaLink = async () => {
-      const email = document.getElementById("email").value;
+    window.inviaOTP = async () => {
+      const email = document.getElementById("email").value.trim();
+      if (!email) {
+        alert("Per favore inserisci la tua email");
+        return;
+      }
+
       try {
         await sendSignInLinkToEmail(auth, email, actionCodeSettings);
         window.localStorage.setItem("emailForSignIn", email);
-        alert("✅ Link inviato! Controlla la tua email.");
+        alert("✅ Link di accesso inviato via email. Controlla la tua posta.");
       } catch (error) {
-        alert("Errore: " + error.message);
+        alert("❌ Errore invio email: " + error.message);
+        console.error(error);
       }
     };
   </script>
@@ -45,39 +47,64 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #fefaf6;
+      background-color: #f4f0e6;
+      text-align: center;
       padding: 40px;
+      margin: 0;
     }
-    .container {
-      max-width: 400px;
-      margin: auto;
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    .logo {
+      width: 400px;
+      margin-bottom: 20px;
     }
-    input, button {
-      width: 100%;
-      margin-top: 12px;
-      padding: 12px;
-      font-size: 16px;
-    }
-    button {
-      background-color: #a6947c;
-      color: white;
-      border: none;
-      cursor: pointer;
+    h1 {
+      font-size: 36px;
+      font-weight: bold;
     }
     h2 {
-      text-align: center;
+      font-size: 20px;
+      margin-bottom: 30px;
+    }
+    input[type="email"] {
+      width: 100%;
+      max-width: 400px;
+      padding: 15px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    button {
+      background-color: black;
+      color: white;
+      font-weight: bold;
+      padding: 15px 40px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .text-bottom {
+      margin-top: 30px;
+      font-size: 16px;
+    }
+    .text-bottom a {
+      font-weight: bold;
+      color: black;
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Accedi con email</h2>
-    <input type="email" id="email" placeholder="Inserisci la tua email" />
-    <button onclick="inviaLink()">Invia link di accesso</button>
+  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
+  <h1>Accedi al tuo <br>BackTag</h1>
+  <h2>Inserisci il tuo indirizzo email <br>per accedere</h2>
+
+  <input type="email" id="email" placeholder="Indirizzo email" />
+  <br>
+  <button onclick="inviaOTP()">Continua</button>
+
+  <div class="text-bottom">
+    Nessun account? <a href="#">Registrati</a>
   </div>
 </body>
 </html>
