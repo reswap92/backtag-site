@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Attiva QR - BackTag</title>
   <script type="module">
-    // Importa Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
       getAuth,
@@ -17,12 +16,11 @@
       getFirestore,
       collection,
       addDoc,
-      getDocs,
       query,
-      where
+      where,
+      getDocs
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // Configurazione Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
       authDomain: "backtag-16de3.firebaseapp.com",
@@ -33,14 +31,15 @@
       measurementId: "G-6565LXTZW7"
     };
 
-    // Inizializza Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const slotIndex = parseInt(urlParams.get("slot"));
+
     let currentUserEmail = null;
 
-    // Rileva utente loggato
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUserEmail = user.email;
@@ -49,7 +48,6 @@
       }
     });
 
-    // Login o registrazione
     window.loginUser = async () => {
       const email = document.getElementById("email").value;
       try {
@@ -63,20 +61,24 @@
       }
     };
 
-    // Attivazione QR
     window.attivaQR = async () => {
       const code = document.getElementById("code").value.trim();
       const label = document.getElementById("label").value.trim();
-      if (!code || !label) return alert("Compila tutti i campi");
+      if (!code || !label || isNaN(slotIndex)) {
+        alert("Compila tutto correttamente");
+        return;
+      }
 
       const qrRef = collection(db, "qrcodes");
 
-      // Controlla slot usati
-      const q = query(qrRef, where("email", "==", currentUserEmail));
-      const snapshot = await getDocs(q);
-
-      if (snapshot.size >= 6) {
-        alert("Hai già usato tutti e 6 gli slot disponibili");
+      // Controlla se lo slot è già occupato
+      const q = query(qrRef,
+        where("email", "==", currentUserEmail),
+        where("slotIndex", "==", slotIndex)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        alert("Questo slot è già occupato!");
         return;
       }
 
@@ -84,10 +86,11 @@
         code,
         label,
         email: currentUserEmail,
+        slotIndex: slotIndex,
         createdAt: new Date()
       });
 
-      alert("QR attivato con successo!");
+      alert("QR attivato correttamente!");
       window.location.href = "profilo.html";
     };
   </script>
@@ -110,34 +113,3 @@
       display: block;
       width: 100%;
       margin: 10px 0;
-      padding: 12px;
-      font-size: 16px;
-    }
-    button {
-      background-color: #a6947c;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    h2 {
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>Attiva il tuo QR</h2>
-
-    <div id="login-area">
-      <input type="email" id="email" placeholder="Inserisci la tua email" />
-      <button onclick="loginUser()">Accedi / Registrati</button>
-    </div>
-
-    <div id="form-area" style="display: none;">
-      <input type="text" id="code" placeholder="Codice QR (es. ABC123)" />
-      <input type="text" id="label" placeholder="Nome oggetto (es. Zaino)" />
-      <button onclick="attivaQR()">Attiva QR</button>
-    </div>
-  </div>
-</body>
-</html>
