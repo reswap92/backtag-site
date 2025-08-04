@@ -15,6 +15,7 @@
       getDocs,
       addDoc,
       updateDoc,
+      deleteDoc,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -34,10 +35,29 @@
     const params = new URLSearchParams(window.location.search);
     const slot = parseInt(params.get("slot"));
     const email = localStorage.getItem("email");
+    let qrDocId = null;
 
     if (!email || isNaN(slot)) {
       alert("Errore: dati mancanti. Torna al profilo.");
       window.location.href = "profilo.html";
+    }
+
+    async function caricaDati() {
+      const qrRef = collection(db, "qrcodes");
+      const q = query(qrRef, where("email", "==", email), where("slotIndex", "==", slot));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+        qrDocId = doc.id;
+
+        document.getElementById("code").value = data.code;
+        document.getElementById("label").value = data.label;
+        document.getElementById("message").value = data.message;
+
+        document.getElementById("deleteButton").style.display = "inline-block";
+      }
     }
 
     window.registraQR = async () => {
@@ -51,20 +71,16 @@
       }
 
       try {
-        const qrRef = collection(db, "qrcodes");
-        const q = query(qrRef, where("email", "==", email), where("slotIndex", "==", slot));
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-          const docRef = snapshot.docs[0].ref;
-          await updateDoc(docRef, {
-            code,
-            label,
-            message
-          });
-          alert("✅ QR aggiornato con successo.");
+        if (qrDocId) {
+          const docRef = collection(db, "qrcodes");
+          const qrToUpdate = query(docRef, where("email", "==", email), where("slotIndex", "==", slot));
+          const snap = await getDocs(qrToUpdate);
+          if (!snap.empty) {
+            await updateDoc(snap.docs[0].ref, { code, label, message });
+            alert("✅ QR aggiornato con successo.");
+          }
         } else {
-          await addDoc(qrRef, {
+          await addDoc(collection(db, "qrcodes"), {
             email,
             slotIndex: slot,
             code,
@@ -81,6 +97,23 @@
         console.error(e);
       }
     };
+
+    window.eliminaQR = async () => {
+      if (!qrDocId) return;
+
+      const conferma = confirm("Sei sicuro di voler eliminare questo QR code?");
+      if (!conferma) return;
+
+      try {
+        await deleteDoc(collection(db, "qrcodes").doc(qrDocId)); // alternativa: usa snapshot.ref.delete()
+        window.location.href = "profilo.html";
+      } catch (e) {
+        console.error("Errore eliminazione:", e);
+        alert("Errore durante l'eliminazione.");
+      }
+    };
+
+    window.addEventListener("DOMContentLoaded", caricaDati);
   </script>
 
   <style>
@@ -122,6 +155,11 @@
       font-size: 16px;
       border-radius: 8px;
       cursor: pointer;
+      margin: 10px;
+    }
+    #deleteButton {
+      background-color: #cc4444;
+      display: none;
     }
   </style>
 </head>
@@ -135,6 +173,7 @@
     <textarea id="message" placeholder="Messaggio visibile a chi trova il QR"></textarea>
 
     <button onclick="registraQR()">Registra</button>
+    <button id="deleteButton" onclick="eliminaQR()">Elimina QR</button>
   </div>
 </body>
 </html>
