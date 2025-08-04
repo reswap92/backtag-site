@@ -70,6 +70,53 @@
       cursor: pointer;
     }
   </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.firebasestorage.app",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const email = localStorage.getItem("email");
+    const slotElements = document.querySelectorAll(".slot");
+
+    async function caricaQR() {
+      if (!email) return;
+      const qrRef = collection(db, "qrcodes");
+      const q = query(qrRef, where("email", "==", email));
+      const snapshot = await getDocs(q);
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const index = data.slotIndex;
+        const slot = slotElements[index];
+        if (slot) {
+          slot.innerHTML = `<div><strong>${data.label}</strong><br/><small>${data.code}</small></div>`;
+          slot.style.border = "2px solid #a58c6b";
+          slot.style.backgroundColor = "#fff";
+          slot.onclick = null; // disattiva click
+        }
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", caricaQR);
+  </script>
 </head>
 <body>
   <div class="card">
