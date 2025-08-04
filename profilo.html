@@ -62,6 +62,7 @@
     .slot-info {
       font-size: 14px;
       color: #333;
+      text-align: center;
     }
     .slot-buttons {
       display: flex;
@@ -90,6 +91,7 @@
       cursor: pointer;
     }
   </style>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
@@ -126,8 +128,9 @@
         const index = data.slotIndex;
         const slot = slotElements[index];
         if (slot) {
+          const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(data.code)}`;
           slot.innerHTML = `
-            <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
+            <img src="${qrURL}" alt="QR">
             <div class="slot-info"><strong>${data.label}</strong><br><small>${data.code}</small></div>
             <div class="slot-buttons">
               <button onclick="location.href='attiva.html?slot=${index}'">✏️</button>
