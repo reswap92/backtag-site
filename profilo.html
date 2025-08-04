@@ -41,7 +41,7 @@
       background-color: #f5efe2;
       border-radius: 16px;
       padding: 16px;
-      height: 120px;
+      height: 180px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -55,6 +55,25 @@
     .slot span {
       font-size: 28px;
       color: #a58c6b;
+    }
+    .slot img {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 6px;
+    }
+    .slot-buttons {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .slot-buttons button {
+      font-size: 12px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background-color: #a58c6b;
+      color: white;
     }
     .cta {
       margin-top: 20px;
@@ -107,10 +126,17 @@
         const index = data.slotIndex;
         const slot = slotElements[index];
         if (slot) {
-          slot.innerHTML = `<div><strong>${data.label}</strong><br/><small>${data.code}</small></div>`;
+          slot.innerHTML = `
+            <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
+            <div><strong>${data.label}</strong><br/><small>${data.code}</small></div>
+            <div class="slot-buttons">
+              <button onclick=\"location.href='attiva.html?slot=${index}'\">✏️ Modifica</button>
+              <button onclick=\"location.href='monitor.html?code=${encodeURIComponent(data.code)}'\">📈 Monitora</button>
+            </div>
+          `;
           slot.style.border = "2px solid #a58c6b";
           slot.style.backgroundColor = "#fff";
-          slot.onclick = null; // disattiva click
+          slot.onclick = null;
         }
       });
     }
