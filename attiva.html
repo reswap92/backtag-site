@@ -16,6 +16,7 @@
       addDoc,
       updateDoc,
       deleteDoc,
+      doc,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -35,35 +36,38 @@
     const params = new URLSearchParams(window.location.search);
     const slot = parseInt(params.get("slot"));
     const email = localStorage.getItem("email");
-    let qrDocId = null;
+
+    const codeInput = document.getElementById("code");
+    const labelInput = document.getElementById("label");
+    const messageInput = document.getElementById("message");
+    const button = document.getElementById("salvaBtn");
+    const deleteBtn = document.getElementById("deleteBtn");
+
+    let qrDocId = null; // se è già registrato
 
     if (!email || isNaN(slot)) {
       alert("Errore: dati mancanti. Torna al profilo.");
       window.location.href = "profilo.html";
     }
 
-    async function caricaDati() {
-      const qrRef = collection(db, "qrcodes");
-      const q = query(qrRef, where("email", "==", email), where("slotIndex", "==", slot));
+    async function controllaEsistente() {
+      const q = query(collection(db, "qrcodes"), where("email", "==", email), where("slotIndex", "==", slot));
       const snapshot = await getDocs(q);
-
       if (!snapshot.empty) {
-        const doc = snapshot.docs[0];
-        const data = doc.data();
-        qrDocId = doc.id;
-
-        document.getElementById("code").value = data.code;
-        document.getElementById("label").value = data.label;
-        document.getElementById("message").value = data.message;
-
-        document.getElementById("deleteButton").style.display = "inline-block";
+        const docData = snapshot.docs[0];
+        qrDocId = docData.id;
+        const dati = docData.data();
+        codeInput.value = dati.code;
+        labelInput.value = dati.label;
+        messageInput.value = dati.message;
+        deleteBtn.style.display = "inline-block";
       }
     }
 
     window.registraQR = async () => {
-      const code = document.getElementById("code").value.trim();
-      const label = document.getElementById("label").value.trim();
-      const message = document.getElementById("message").value.trim();
+      const code = codeInput.value.trim();
+      const label = labelInput.value.trim();
+      const message = messageInput.value.trim();
 
       if (!code || !label || !message) {
         alert("Completa tutti i campi.");
@@ -72,13 +76,11 @@
 
       try {
         if (qrDocId) {
-          const docRef = collection(db, "qrcodes");
-          const qrToUpdate = query(docRef, where("email", "==", email), where("slotIndex", "==", slot));
-          const snap = await getDocs(qrToUpdate);
-          if (!snap.empty) {
-            await updateDoc(snap.docs[0].ref, { code, label, message });
-            alert("✅ QR aggiornato con successo.");
-          }
+          const qrRef = doc(db, "qrcodes", qrDocId);
+          await updateDoc(qrRef, {
+            code, label, message
+          });
+          alert("✅ QR aggiornato con successo.");
         } else {
           await addDoc(collection(db, "qrcodes"), {
             email,
@@ -93,8 +95,8 @@
 
         window.location.href = "profilo.html";
       } catch (e) {
-        alert("❌ Errore durante il salvataggio.");
         console.error(e);
+        alert("❌ Errore durante il salvataggio.");
       }
     };
 
@@ -105,7 +107,9 @@
       if (!conferma) return;
 
       try {
-        await deleteDoc(collection(db, "qrcodes").doc(qrDocId)); // alternativa: usa snapshot.ref.delete()
+        const qrRef = doc(db, "qrcodes", qrDocId);
+        await deleteDoc(qrRef);
+        alert("QR eliminato con successo.");
         window.location.href = "profilo.html";
       } catch (e) {
         console.error("Errore eliminazione:", e);
@@ -113,7 +117,7 @@
       }
     };
 
-    window.addEventListener("DOMContentLoaded", caricaDati);
+    window.addEventListener("DOMContentLoaded", controllaEsistente);
   </script>
 
   <style>
@@ -155,10 +159,10 @@
       font-size: 16px;
       border-radius: 8px;
       cursor: pointer;
-      margin: 10px;
     }
-    #deleteButton {
-      background-color: #cc4444;
+    #deleteBtn {
+      background-color: #c04444;
+      margin-left: 10px;
       display: none;
     }
   </style>
@@ -172,8 +176,8 @@
     <input id="label" type="text" placeholder="Nome dell’oggetto (es. Zaino scuola)" />
     <textarea id="message" placeholder="Messaggio visibile a chi trova il QR"></textarea>
 
-    <button onclick="registraQR()">Registra</button>
-    <button id="deleteButton" onclick="eliminaQR()">Elimina QR</button>
+    <button id="salvaBtn" onclick="registraQR()">Salva</button>
+    <button id="deleteBtn" onclick="eliminaQR()">Elimina</button>
   </div>
 </body>
 </html>
