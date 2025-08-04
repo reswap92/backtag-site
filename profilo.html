@@ -40,35 +40,36 @@
     .slot {
       background-color: #f5efe2;
       border-radius: 16px;
-      padding: 16px;
+      padding: 12px;
       height: 180px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       border: 2px dashed #d4c6aa;
       cursor: pointer;
+      box-sizing: border-box;
     }
-    .slot:hover {
-      background-color: #f0e6d5;
+    .slot img {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 4px;
     }
     .slot span {
       font-size: 28px;
       color: #a58c6b;
     }
-    .slot img {
-      width: 60px;
-      height: 60px;
-      margin-bottom: 6px;
+    .slot-info {
+      font-size: 14px;
+      color: #333;
     }
     .slot-buttons {
       display: flex;
       gap: 6px;
-      margin-top: 6px;
     }
     .slot-buttons button {
-      font-size: 12px;
-      padding: 6px 10px;
+      font-size: 11px;
+      padding: 5px 8px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
@@ -103,7 +104,7 @@
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
       authDomain: "backtag-16de3.firebaseapp.com",
       projectId: "backtag-16de3",
-      storageBucket: "backtag-16de3.firebasestorage.app",
+      storageBucket: "backtag-16de3.appspot.com",
       messagingSenderId: "415455463905",
       appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
       measurementId: "G-6565LXTZW7"
@@ -111,7 +112,6 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-
     const email = localStorage.getItem("email");
     const slotElements = document.querySelectorAll(".slot");
 
@@ -128,14 +128,15 @@
         if (slot) {
           slot.innerHTML = `
             <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
-            <div><strong>${data.label}</strong><br/><small>${data.code}</small></div>
+            <div class="slot-info"><strong>${data.label}</strong><br><small>${data.code}</small></div>
             <div class="slot-buttons">
-              <button onclick=\"location.href='attiva.html?slot=${index}'\">✏️ Modifica</button>
-              <button onclick=\"location.href='monitor.html?code=${encodeURIComponent(data.code)}'\">📈 Monitora</button>
+              <button onclick="location.href='attiva.html?slot=${index}'">✏️</button>
+              <button onclick="location.href='monitor.html?code=${encodeURIComponent(data.code)}'">📈</button>
             </div>
           `;
           slot.style.border = "2px solid #a58c6b";
           slot.style.backgroundColor = "#fff";
+          slot.style.cursor = "default";
           slot.onclick = null;
         }
       });
@@ -151,7 +152,6 @@
     <h3>QR attivi</h3>
 
     <div class="qr-grid">
-      <!-- 6 slot vuoti con pulsanti -->
       <div class="slot" onclick="location.href='attiva.html?slot=0'"><span>+</span></div>
       <div class="slot" onclick="location.href='attiva.html?slot=1'"><span>+</span></div>
       <div class="slot" onclick="location.href='attiva.html?slot=2'"><span>+</span></div>
