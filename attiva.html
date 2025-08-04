@@ -3,71 +3,119 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Verifica OTP - BackTag</title>
+  <title>Attiva QR - BackTag</title>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.firebasestorage.app",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const params = new URLSearchParams(window.location.search);
+    const slot = parseInt(params.get("slot"));
+    const email = localStorage.getItem("email");
+
+    if (!email || isNaN(slot)) {
+      alert("Errore: dati mancanti. Torna al profilo.");
+      window.location.href = "profilo.html";
+    }
+
+    window.registraQR = async () => {
+      const code = document.getElementById("code").value.trim();
+      const label = document.getElementById("label").value.trim();
+      const message = document.getElementById("message").value.trim();
+
+      if (!code || !label || !message) {
+        alert("Completa tutti i campi.");
+        return;
+      }
+
+      try {
+        await addDoc(collection(db, "qrcodes"), {
+          email,
+          slotIndex: slot,
+          code,
+          label,
+          message,
+          createdAt: serverTimestamp()
+        });
+        alert("✅ QR registrato con successo.");
+        window.location.href = "profilo.html";
+      } catch (e) {
+        alert("❌ Errore durante il salvataggio.");
+        console.error(e);
+      }
+    };
+  </script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #fefaf6;
-      text-align: center;
-      padding: 40px;
       margin: 0;
+      padding: 0;
+      background-color: #fefaf6;
+      color: #111;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
     }
     .logo {
-      width: 300px;
+      height: 200px;
       margin-bottom: 20px;
     }
     h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
-    h2 {
-      font-size: 18px;
-      margin-bottom: 30px;
-    }
-    input[type="text"] {
-      width: 100%;
-      max-width: 400px;
-      padding: 15px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
+      font-size: 2em;
       margin-bottom: 20px;
     }
+    input, textarea {
+      width: 100%;
+      max-width: 500px;
+      padding: 14px;
+      font-size: 16px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
     button {
-      background-color: black;
+      background-color: #a6947c;
       color: white;
-      font-weight: bold;
-      padding: 15px 40px;
-      font-size: 18px;
       border: none;
-      border-radius: 10px;
+      padding: 15px 30px;
+      font-size: 16px;
+      border-radius: 8px;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
-  <h1>Verifica OTP</h1>
-  <h2>Inserisci il codice che hai ricevuto via email</h2>
+  <div class="container">
+    <img src="logo-backtag.png" alt="Logo BackTag" class="logo">
+    <h1>Attiva il tuo QR Code</h1>
 
-  <input type="text" id="otpInserito" placeholder="Inserisci il codice OTP" />
-  <br />
-  <button onclick="verificaOTP()">Verifica</button>
+    <input id="code" type="text" placeholder="Codice univoco del QR" />
+    <input id="label" type="text" placeholder="Nome dell’oggetto (es. Zaino scuola)" />
+    <textarea id="message" placeholder="Messaggio visibile a chi trova il QR"></textarea>
 
-  <script>
-    function verificaOTP() {
-      const otpUtente = document.getElementById("otpInserito").value.trim();
-      const otpSalvato = localStorage.getItem("otp");
-      const emailUtente = localStorage.getItem("email-temp");
-
-      if (otpUtente === otpSalvato) {
-        localStorage.setItem("email", emailUtente); // Salva email definitiva per profilo
-        alert("✅ Codice corretto. Benvenuto!");
-        window.location.href = "profilo.html";
-      } else {
-        alert("❌ Codice errato. Riprova.");
-      }
-    }
-  </script>
+    <button onclick="registraQR()">Registra</button>
+  </div>
 </body>
 </html>
