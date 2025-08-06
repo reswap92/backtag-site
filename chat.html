@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Chat - BackTag</title>
   <style>
     body {
@@ -47,16 +47,17 @@
     }
     #errore {
       color: #a00;
-      margin-top: 10px;
+      margin-top: 20px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <img src="logo-backtag.png" alt="Logo BackTag" class="logo">
+  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
   <h1>Hai trovato un oggetto?</h1>
   <p class="subtitle">Invia un messaggio al proprietario, in forma completamente anonima.</p>
 
-  <div id="formContainer" style="display:none;">
+  <div id="formContainer" style="display: none;">
     <textarea id="messaggio" placeholder="Scrivi il tuo messaggio qui..."></textarea><br>
     <button onclick="inviaMessaggio()">Invia messaggio</button>
   </div>
@@ -90,14 +91,16 @@
 
     const params = new URLSearchParams(window.location.search);
     const codiceQR = params.get("code");
-
     const form = document.getElementById("formContainer");
     const errore = document.getElementById("errore");
-
     let emailDestinatario = null;
 
     async function controllaCodice() {
-      if (!codiceQR) return;
+      if (!codiceQR) {
+        errore.textContent = "QR Code non valido o mancante.";
+        return;
+      }
+
       const qrcodesRef = collection(db, "qrcodes");
       const q = query(qrcodesRef, where("code", "==", codiceQR));
       const snapshot = await getDocs(q);
@@ -106,7 +109,7 @@
         emailDestinatario = snapshot.docs[0].data().email;
         form.style.display = "block";
       } else {
-        errore.textContent = "QR Code non valido.";
+        errore.textContent = "QR Code non trovato o non ancora registrato.";
       }
     }
 
