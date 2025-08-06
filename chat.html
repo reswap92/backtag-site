@@ -1,1 +1,131 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat anonima - BackTag</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fefaf6;
+      margin: 0;
+      padding: 40px 20px;
+      text-align: center;
+      color: #111;
+    }
+    .logo {
+      height: 300px;
+      margin-bottom: 20px;
+    }
+    .message-box {
+      background-color: #fff9f0;
+      border: 1px solid #ddd;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px auto;
+      max-width: 500px;
+      font-size: 18px;
+    }
+    textarea {
+      width: 100%;
+      max-width: 500px;
+      height: 120px;
+      padding: 14px;
+      margin: 20px auto;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+      resize: none;
+    }
+    button {
+      background-color: #a6947c;
+      color: white;
+      border: none;
+      padding: 14px 30px;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .confirmation {
+      color: green;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
+  <h1>Hai trovato un oggetto?</h1>
+  <p>Invia un messaggio al proprietario, in forma completamente anonima.</p>
+
+  <div id="proprietario" class="message-box">Caricamento messaggio...</div>
+
+  <textarea id="messaggio" placeholder="Scrivi qui il tuo messaggio anonimo..."></textarea>
+  <br>
+  <button onclick="inviaMessaggio()">Invia messaggio</button>
+
+  <div class="confirmation" id="conferma"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs,
+      addDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.appspot.com",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+
+    const box = document.getElementById("proprietario");
+
+    async function caricaMessaggio() {
+      const q = query(collection(db, "qrcodes"), where("code", "==", code));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        box.textContent = "QR Code non valido.";
+        return;
+      }
+      const dati = snap.docs[0].data();
+      box.textContent = dati.message;
+    }
+
+    async function inviaMessaggio() {
+      const messaggio = document.getElementById("messaggio").value.trim();
+      if (!messaggio) {
+        alert("Scrivi un messaggio prima di inviare.");
+        return;
+      }
+
+      await addDoc(collection(db, "messaggi"), {
+        codiceQR: code,
+        messaggio,
+        data: serverTimestamp()
+      });
+
+      document.getElementById("messaggio").value = "";
+      document.getElementById("conferma").textContent = "✅ Messaggio inviato!";
+    }
+
+    caricaMessaggio();
+  </script>
+</body>
+</html>
 
