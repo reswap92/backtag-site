@@ -2,69 +2,65 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Trova oggetto - BackTag</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trova - BackTag</title>
   <style>
     body {
       background-color: #fefaf6;
       font-family: Arial, sans-serif;
       text-align: center;
-      padding: 40px;
+      padding: 40px 20px;
       margin: 0;
     }
+
     .logo {
       width: 300px;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
     }
+
     h1 {
       font-size: 28px;
-      color: #222;
       margin-bottom: 10px;
+      color: #222;
     }
+
     input {
-      width: 100%;
-      max-width: 400px;
       padding: 14px;
       font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 10px;
+      width: 90%;
+      max-width: 400px;
       margin-bottom: 20px;
     }
+
     button {
-      background-color: #a58c6b;
+      background-color: #a6947c;
       color: white;
       font-weight: bold;
-      padding: 12px 30px;
+      padding: 14px 32px;
       font-size: 16px;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      margin-bottom: 20px;
     }
-    .result {
-      margin-top: 30px;
-      font-size: 18px;
-      color: #333;
-    }
+
     .chat-button {
-      background-color: #000;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 16px;
-      margin-top: 15px;
-      display: inline-block;
-      text-decoration: none;
+      margin-top: 30px;
     }
+
+    .chat-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
     .slogan {
       margin-top: 60px;
       font-weight: bold;
-      font-size: 16px;
-      color: #555;
-      letter-spacing: 2px;
+      font-size: 1.2em;
+      color: #222;
     }
   </style>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
@@ -89,42 +85,40 @@
     const db = getFirestore(app);
 
     window.cercaCodice = async () => {
-      const codice = document.getElementById("codice").value.trim();
-      const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "";
+      const codiceInserito = document.getElementById("codice").value.trim();
+      const risultato = document.getElementById("risultato");
 
-      if (!codice) {
-        resultDiv.innerText = "Inserisci un codice.";
+      if (!codiceInserito) {
+        alert("Inserisci un codice univoco");
         return;
       }
 
-      const q = query(collection(db, "qrcodes"), where("code", "==", codice));
+      const qrRef = collection(db, "qrcodes");
+      const q = query(qrRef, where("code", "==", codiceInserito));
       const snapshot = await getDocs(q);
 
       if (snapshot.empty) {
-        resultDiv.innerText = "Codice non trovato o non ancora attivato.";
-        return;
+        risultato.innerHTML = "<p>Codice non trovato.</p>";
+      } else {
+        localStorage.setItem("lastCode", codiceInserito); // per usare in chat.html
+        risultato.innerHTML = `
+          <div class="chat-icon">💬</div>
+          <button onclick="location.href='chat.html'">Apri chat anonima</button>
+        `;
       }
-
-      const data = snapshot.docs[0].data();
-      resultDiv.innerHTML = `
-        <div>🔒 Codice trovato. Puoi contattare il proprietario:</div>
-        <a class="chat-button" href="chat.html?code=${encodeURIComponent(data.code)}">Contatta il proprietario</a>
-      `;
     };
   </script>
 </head>
 <body>
-  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
-  <h1>Hai trovato un oggetto?</h1>
-  <p>Inserisci il codice stampato sul QR BackTag per contattare il proprietario:</p>
+  <img src="logo-backtag.png" alt="Logo BackTag" class="logo">
+  <h1>Inserisci il codice trovato</h1>
 
-  <input type="text" id="codice" placeholder="Es. BT-0005" />
-  <br />
-  <button onclick="cercaCodice()">Cerca</button>
+  <input type="text" id="codice" placeholder="Es. BT-0001" />
+  <br>
+  <button onclick="cercaCodice()">Trova</button>
 
-  <div id="result" class="result"></div>
+  <div id="risultato" class="chat-button"></div>
 
-  <p class="slogan">TROVA. SCANSIONA. RESTITUISCI</p>
+  <div class="slogan">TROVA. SCANSIONA. RESTITUISCI.</div>
 </body>
 </html>
