@@ -1,70 +1,67 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chat anonima - BackTag</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat - BackTag</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #fefaf6;
-      margin: 0;
-      padding: 40px 20px;
-      text-align: center;
       color: #111;
+      text-align: center;
+      padding: 40px;
+      margin: 0;
     }
     .logo {
-      height: 300px;
+      width: 300px;
       margin-bottom: 20px;
     }
-    .message-box {
-      background-color: #fff9f0;
-      border: 1px solid #ddd;
-      padding: 20px;
-      border-radius: 12px;
-      margin: 20px auto;
-      max-width: 500px;
-      font-size: 18px;
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    p.subtitle {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: #555;
     }
     textarea {
       width: 100%;
       max-width: 500px;
       height: 120px;
-      padding: 14px;
-      margin: 20px auto;
-      border: 1px solid #ccc;
-      border-radius: 10px;
+      padding: 15px;
       font-size: 16px;
-      resize: none;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
     }
     button {
-      background-color: #a6947c;
+      background-color: #a58c6b;
       color: white;
+      padding: 14px 28px;
       border: none;
-      padding: 14px 30px;
       font-size: 16px;
       border-radius: 10px;
       cursor: pointer;
     }
-    .confirmation {
-      color: green;
-      margin-top: 20px;
-      font-weight: bold;
+    #errore {
+      color: #a00;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
+  <img src="logo-backtag.png" alt="Logo BackTag" class="logo">
   <h1>Hai trovato un oggetto?</h1>
-  <p>Invia un messaggio al proprietario, in forma completamente anonima.</p>
+  <p class="subtitle">Invia un messaggio al proprietario, in forma completamente anonima.</p>
 
-  <div id="proprietario" class="message-box">Caricamento messaggio...</div>
+  <div id="formContainer" style="display:none;">
+    <textarea id="messaggio" placeholder="Scrivi il tuo messaggio qui..."></textarea><br>
+    <button onclick="inviaMessaggio()">Invia messaggio</button>
+  </div>
 
-  <textarea id="messaggio" placeholder="Scrivi qui il tuo messaggio anonimo..."></textarea>
-  <br>
-  <button onclick="inviaMessaggio()">Invia messaggio</button>
-
-  <div class="confirmation" id="conferma"></div>
+  <div id="errore"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -92,40 +89,47 @@
     const db = getFirestore(app);
 
     const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
+    const codiceQR = params.get("code");
 
-    const box = document.getElementById("proprietario");
+    const form = document.getElementById("formContainer");
+    const errore = document.getElementById("errore");
 
-    async function caricaMessaggio() {
-      const q = query(collection(db, "qrcodes"), where("code", "==", code));
-      const snap = await getDocs(q);
-      if (snap.empty) {
-        box.textContent = "QR Code non valido.";
-        return;
+    let emailDestinatario = null;
+
+    async function controllaCodice() {
+      if (!codiceQR) return;
+      const qrcodesRef = collection(db, "qrcodes");
+      const q = query(qrcodesRef, where("code", "==", codiceQR));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        emailDestinatario = snapshot.docs[0].data().email;
+        form.style.display = "block";
+      } else {
+        errore.textContent = "QR Code non valido.";
       }
-      const dati = snap.docs[0].data();
-      box.textContent = dati.message;
     }
 
     async function inviaMessaggio() {
-      const messaggio = document.getElementById("messaggio").value.trim();
-      if (!messaggio) {
-        alert("Scrivi un messaggio prima di inviare.");
-        return;
+      const testo = document.getElementById("messaggio").value.trim();
+      if (!testo || !emailDestinatario) return;
+
+      try {
+        await addDoc(collection(db, "messaggi"), {
+          email: emailDestinatario,
+          codice: codiceQR,
+          testo,
+          data: serverTimestamp()
+        });
+        alert("Messaggio inviato con successo!");
+        window.location.href = "index.html";
+      } catch (e) {
+        alert("Errore nell'invio del messaggio");
+        console.error(e);
       }
-
-      await addDoc(collection(db, "messaggi"), {
-        codiceQR: code,
-        messaggio,
-        data: serverTimestamp()
-      });
-
-      document.getElementById("messaggio").value = "";
-      document.getElementById("conferma").textContent = "✅ Messaggio inviato!";
     }
 
-    caricaMessaggio();
+    window.addEventListener("DOMContentLoaded", controllaCodice);
   </script>
 </body>
 </html>
-
