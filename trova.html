@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trova oggetto - BackTag</title>
+  <style>
+    body {
+      background-color: #fefaf6;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+      margin: 0;
+    }
+    .logo {
+      width: 300px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 28px;
+      color: #222;
+      margin-bottom: 10px;
+    }
+    input {
+      width: 100%;
+      max-width: 400px;
+      padding: 14px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    button {
+      background-color: #a58c6b;
+      color: white;
+      font-weight: bold;
+      padding: 12px 30px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .result {
+      margin-top: 30px;
+      font-size: 18px;
+      color: #333;
+    }
+    .chat-button {
+      background-color: #000;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-top: 15px;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .slogan {
+      margin-top: 60px;
+      font-weight: bold;
+      font-size: 16px;
+      color: #555;
+      letter-spacing: 2px;
+    }
+  </style>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.appspot.com",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.cercaCodice = async () => {
+      const codice = document.getElementById("codice").value.trim();
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "";
+
+      if (!codice) {
+        resultDiv.innerText = "Inserisci un codice.";
+        return;
+      }
+
+      const q = query(collection(db, "qrcodes"), where("code", "==", codice));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        resultDiv.innerText = "Codice non trovato o non ancora attivato.";
+        return;
+      }
+
+      const data = snapshot.docs[0].data();
+      resultDiv.innerHTML = `
+        <div>🔒 Codice trovato. Puoi contattare il proprietario:</div>
+        <a class="chat-button" href="chat.html?code=${encodeURIComponent(data.code)}">💬 Contatta</a>
+      `;
+    };
+  </script>
+</head>
+<body>
+  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
+  <h1>Hai trovato un oggetto?</h1>
+  <p>Inserisci il codice stampato sul QR BackTag per contattare il proprietario:</p>
+
+  <input type="text" id="codice" placeholder="Es. BT-0005" />
+  <br />
+  <button onclick="cercaCodice()">Cerca</button>
+
+  <div id="result" class="result"></div>
+
+  <p class="slogan">TROVA. SCANSIONA. RESTITUISCI</p>
+</body>
+</html>
