@@ -29,49 +29,104 @@
       width: 160px;
       height: 160px;
     }
-    .monitor-button {
-      background-color: #a58c6b;
-      color: white;
-      border: none;
-      padding: 14px 26px;
-      font-size: 16px;
+    .scansioni {
+      margin-top: 30px;
+      text-align: left;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      background: #fff;
+      padding: 20px;
       border-radius: 10px;
-      cursor: pointer;
-      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    .info-box {
-      margin-top: 40px;
-      font-size: 16px;
-      color: #555;
+    .scansioni h2 {
+      font-size: 20px;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .scansioni ul {
+      list-style: none;
+      padding: 0;
+    }
+    .scansioni li {
+      margin-bottom: 10px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 8px;
     }
   </style>
 </head>
 <body>
   <img src="logo-backtag.png" alt="Logo BackTag" class="logo">
   <h1>Monitoraggio QR Code</h1>
-  <div id="qrSection">
-    <div class="code-label" id="qrLabel">Codice:</div>
-    <div class="qr-image" id="qrImage"></div>
-    <button class="monitor-button" id="monitorButton" target="_blank">Vedi statistiche</button>
-  </div>
-  <div class="info-box">
-    Le statistiche avanzate saranno presto integrate in questa pagina.<br>
-    Al momento si aprirà la pagina di monitoraggio MetriQR.
+  <div class="code-label" id="qrLabel">Codice:</div>
+  <div class="qr-image" id="qrImage"></div>
+
+  <div class="scansioni">
+    <h2>Scansioni recenti</h2>
+    <ul id="listaScansioni">
+      <li>Caricamento...</li>
+    </ul>
   </div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs,
+      orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.appspot.com",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
+    document.getElementById("qrLabel").textContent = `Codice: ${code}`;
+    document.getElementById("qrImage").innerHTML = `<img src="https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=${encodeURIComponent(code)}" alt="QR">`;
 
-    if (!code) {
-      document.getElementById("qrSection").innerHTML = "<p>Codice non valido.</p>";
-    } else {
-      document.getElementById("qrLabel").textContent = `Codice: ${code}`;
-      document.getElementById("qrImage").innerHTML = `<img src="https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=${encodeURIComponent(code)}" alt="QR">`;
-      document.getElementById("monitorButton").onclick = () => {
-        window.open(`https://mtqr.me/${encodeURIComponent(code)}`, '_blank');
-      };
+    const listaScansioni = document.getElementById("listaScansioni");
+
+    async function caricaScansioni() {
+      const scansioniRef = collection(db, "scansioni");
+      const q = query(scansioniRef, where("codice", "==", code), orderBy("time", "desc"));
+      const snapshot = await getDocs(q);
+
+      listaScansioni.innerHTML = "";
+
+      if (snapshot.empty) {
+        listaScansioni.innerHTML = "<li>Nessuna scansione trovata.</li>";
+        return;
+      }
+
+      snapshot.forEach(doc => {
+        const dati = doc.data();
+        const data = dati.time?.toDate?.().toLocaleString() || "Data sconosciuta";
+        const userAgent = dati.userAgent || "Dispositivo sconosciuto";
+        const posizione = dati.posizione
+          ? `Lat: ${dati.posizione.lat}, Lng: ${dati.posizione.lng}`
+          : "Posizione non disponibile";
+
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>${data}</strong><br>📱 ${userAgent}<br>📍 ${posizione}`;
+        listaScansioni.appendChild(li);
+      });
     }
+
+    window.addEventListener("DOMContentLoaded", caricaScansioni);
   </script>
 </body>
 </html>
