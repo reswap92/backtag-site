@@ -106,8 +106,22 @@
       const snapshot = await getDocs(q);
 
       if (!snapshot.empty) {
-        emailDestinatario = snapshot.docs[0].data().email;
+        const doc = snapshot.docs[0].data();
+        emailDestinatario = doc.email;
         form.style.display = "block";
+
+        // 🔴 Salva la SCANSIONE nel database
+        try {
+          await addDoc(collection(db, "scansioni"), {
+            codice: codiceQR,
+            email: emailDestinatario,
+            userAgent: navigator.userAgent,
+            time: serverTimestamp()
+          });
+        } catch (err) {
+          console.error("Errore durante la registrazione della scansione", err);
+        }
+
       } else {
         errore.textContent = "QR Code non trovato o non ancora registrato.";
       }
