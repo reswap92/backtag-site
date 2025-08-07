@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Genera QR Code - BackTag</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fefaf6;
+      text-align: center;
+      padding: 40px;
+    }
+    .logo {
+      width: 300px;
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 12px;
+      font-size: 16px;
+      width: 300px;
+      margin: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      background-color: #a58c6b;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #qrPreview {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <img src="logo-backtag.png" class="logo" alt="Logo BackTag">
+  <h1>Genera un QR Code</h1>
+
+  <input id="codice" type="text" placeholder="Codice univoco (es. BT-0010)" />
+  <br>
+  <button onclick="generaQR()">Genera QR</button>
+
+  <div id="qrPreview"></div>
+
+  <script>
+    function generaQR() {
+      const codice = document.getElementById("codice").value.trim();
+      if (!codice) {
+        alert("Inserisci un codice univoco.");
+        return;
+      }
+
+      const link = `https://backtag.it/trova.html?code=${encodeURIComponent(codice)}`;
+
+      // Mostra QR
+      document.getElementById("qrPreview").innerHTML = `
+        <h2>QR Code generato</h2>
+        <img src="https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=${encodeURIComponent(link)}" alt="QR Code">
+        <p><strong>Link:</strong><br>${link}</p>
+      `;
+    }
+  </script>
+</body>
+</html>
