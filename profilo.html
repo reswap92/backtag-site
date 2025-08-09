@@ -92,80 +92,81 @@
     }
   </style>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      query,
-      where,
-      getDocs
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+ <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    query,
+    where,
+    getDocs
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
-      authDomain: "backtag-16de3.firebaseapp.com",
-      projectId: "backtag-16de3",
-      storageBucket: "backtag-16de3.appspot.com",
-      messagingSenderId: "415455463905",
-      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
-      measurementId: "G-6565LXTZW7"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+    authDomain: "backtag-16de3.firebaseapp.com",
+    projectId: "backtag-16de3",
+    storageBucket: "backtag-16de3.appspot.com",
+    messagingSenderId: "415455463905",
+    appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+    measurementId: "G-6565LXTZW7"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const email = localStorage.getItem("email");
-    const slotElements = document.querySelectorAll(".slot");
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    async function caricaQR() {
-      if (!email) return;
-      const qrRef = collection(db, "qrcodes");
-      const q = query(qrRef, where("email", "==", email));
-      const snapshot = await getDocs(q);
+  const email = localStorage.getItem("email");
+  const slotElements = document.querySelectorAll(".slot");
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const index = data.slotIndex;
-        const slot = slotElements[index];
-        if (slot) {
-          const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(data.code)}`;
-          slot.innerHTML = `
-            <img src="${qrURL}" alt="QR">
-            <div class="slot-info"><strong>${data.label}</strong><br><small>${data.code}</small></div>
-            <div class="slot-buttons">
-              <button onclick="location.href='attiva.html?slot=${index}'">✏️</button>
-              <button onclick="location.href='monitor.html?code=${encodeURIComponent(data.code)}'">📈</button>
-            </div>
-          `;
-          slot.style.border = "2px solid #a58c6b";
-          slot.style.backgroundColor = "#fff";
-          slot.style.cursor = "default";
-          slot.onclick = null;
-        }
-      });
-    }
+  // Rimetti lo slot "vuoto" (+) identico al tuo HTML
+  function renderEmptySlot(slotEl, index) {
+    slotEl.style.border = "2px dashed #d4c6aa";
+    slotEl.style.backgroundColor = "#f5efe2";
+    slotEl.style.cursor = "pointer";
+    slotEl.innerHTML = `<span>+</span>`;
+    slotEl.onclick = () => location.href = `attiva.html?slot=${index}`;
+  }
 
-    window.addEventListener("DOMContentLoaded", caricaQR);
-  </script>
-</head>
-<body>
-  <div class="card">
-    <img src="logo-backtag.png" alt="Logo BackTag" class="logo">
-    <h1>Profilo</h1>
-    <h3>QR attivi</h3>
+  // Render slot pieno
+  function renderFilledSlot(slotEl, index, data) {
+    slotEl.innerHTML = `
+      <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
+      <div class="slot-info"><strong>${data.label}</strong><br><small>${data.code}</small></div>
+      <div class="slot-buttons">
+        <button onclick="location.href='attiva.html?slot=${index}'">✏️</button>
+        <button onclick="location.href='monitor.html?code=${encodeURIComponent(data.code)}'">📈</button>
+      </div>
+    `;
+    slotEl.style.border = "2px solid #a58c6b";
+    slotEl.style.backgroundColor = "#fff";
+    slotEl.style.cursor = "default";
+    slotEl.onclick = null;
+  }
 
-    <div class="qr-grid">
-      <div class="slot" onclick="location.href='attiva.html?slot=0'"><span>+</span></div>
-      <div class="slot" onclick="location.href='attiva.html?slot=1'"><span>+</span></div>
-      <div class="slot" onclick="location.href='attiva.html?slot=2'"><span>+</span></div>
-      <div class="slot" onclick="location.href='attiva.html?slot=3'"><span>+</span></div>
-      <div class="slot" onclick="location.href='attiva.html?slot=4'"><span>+</span></div>
-      <div class="slot" onclick="location.href='attiva.html?slot=5'"><span>+</span></div>
-    </div>
+  async function caricaQR() {
+    if (!email) return;
 
-    <div class="cta">
-      <button onclick="alert('Acquisto 10 slot aggiuntivi a 0.99€')">Attiva ora</button>
-    </div>
-  </div>
-</body>
-</html>
+    // 1) reset: tutti vuoti
+    slotElements.forEach((el, i) => renderEmptySlot(el, i));
+
+    // 2) leggi Firestore e riempi quelli attivi
+    const qrRef = collection(db, "qrcodes");
+    const q = query(qrRef, where("email", "==", email));
+    const snapshot = await getDocs(q);
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const index = Number(data.slotIndex);
+      const slot = slotElements[index];
+      if (slot) renderFilledSlot(slot, index, data);
+    });
+  }
+
+  // Carica al primo load
+  window.addEventListener("DOMContentLoaded", caricaQR);
+
+  // Quando torni indietro dal browser (bfcache), ricarica i dati
+  window.addEventListener("pageshow", () => {
+    caricaQR();
+  });
+</script>
