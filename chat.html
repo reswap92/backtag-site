@@ -188,13 +188,14 @@
       }
 
       try {
-        await addDoc(collection(db, "messaggi"), {
-          email: emailDestinatario,
-          codice: codiceQR,
-          testo,
-          data: serverTimestamp(),
-          read: false // <-- fondamentale per il badge nel profilo
-        });
+       await addDoc(collection(db, "messaggi"), {
+  email: emailDestinatario, // proprietario
+  codice: codiceQR, // codice del QR
+  testo,
+  from: "finder", // chi scrive è il “trovate”
+  letto: false, // <— IMPORTANTE per il badge
+  data: serverTimestamp()
+});
         alert("Messaggio inviato con successo!");
         window.location.href = "index.html";
       } catch (e) {
