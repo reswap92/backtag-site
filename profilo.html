@@ -38,6 +38,7 @@
       margin: 30px 0;
     }
     .slot {
+      position: relative;
       background-color: #f5efe2;
       border-radius: 16px;
       padding: 12px;
@@ -75,6 +76,17 @@
       cursor: pointer;
       background-color: #a58c6b;
       color: white;
+    }
+    .badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background-color: red;
+      color: white;
+      font-size: 12px;
+      padding: 3px 6px;
+      border-radius: 50%;
+      cursor: pointer;
     }
     .cta {
       margin-top: 20px;
@@ -121,8 +133,8 @@
       const q = query(qrRef, where("email", "==", email));
       const snapshot = await getDocs(q);
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
+      snapshot.forEach(async docSnap => {
+        const data = docSnap.data();
         const index = data.slotIndex;
         const slot = slotElements[index];
         if (slot) {
@@ -138,6 +150,20 @@
           slot.style.backgroundColor = "#fff";
           slot.style.cursor = "default";
           slot.onclick = null;
+
+          // 🔴 Controllo messaggi non letti
+          const msgRef = collection(db, "messaggi");
+          const qMsg = query(msgRef, where("codice", "==", data.code), where("letto", "==", false));
+          const snapMsg = await getDocs(qMsg);
+          if (!snapMsg.empty) {
+            const badge = document.createElement("div");
+            badge.classList.add("badge");
+            badge.textContent = snapMsg.size;
+            badge.onclick = () => {
+              location.href = `messaggi.html?code=${encodeURIComponent(data.code)}`;
+            };
+            slot.appendChild(badge);
+          }
         }
       });
     }
