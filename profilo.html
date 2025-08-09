@@ -22,15 +22,9 @@
       width: 360px;
       text-align: center;
     }
-    .logo {
-      width: 300px;
-      margin: 0 auto 10px;
-    }
-    h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-      color: #222;
-    }
+    .logo { width: 300px; margin: 0 auto 10px; }
+    h1 { font-size: 28px; margin-bottom: 10px; color: #222; }
+
     .qr-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -38,7 +32,7 @@
       margin: 30px 0;
     }
     .slot {
-      position: relative; /* per il badge */
+      position: relative;
       background-color: #f5efe2;
       border-radius: 16px;
       padding: 12px;
@@ -50,72 +44,37 @@
       border: 2px dashed #d4c6aa;
       cursor: pointer;
       box-sizing: border-box;
-      overflow: hidden; /* evita sovrapposizioni del badge */
+      overflow: hidden;
     }
-    .slot img {
-      width: 60px;
-      height: 60px;
-      margin-bottom: 4px;
-    }
-    .slot span {
-      font-size: 28px;
-      color: #a58c6b;
-    }
-    .slot-info {
-      font-size: 14px;
-      color: #333;
-      text-align: center;
-    }
-    .slot-buttons {
-      display: flex;
-      gap: 6px;
-    }
+    .slot img { width: 60px; height: 60px; margin-bottom: 4px; }
+    .slot span { font-size: 28px; color: #a58c6b; }
+    .slot-info { font-size: 14px; color: #333; text-align: center; }
+    .slot-buttons { display: flex; gap: 6px; }
     .slot-buttons button {
-      font-size: 11px;
-      padding: 5px 8px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background-color: #a58c6b;
-      color: white;
+      font-size: 11px; padding: 5px 8px; border: none; border-radius: 6px;
+      cursor: pointer; background-color: #a58c6b; color: white;
     }
     .cta { margin-top: 20px; }
     .cta button {
-      background-color: #d3b277;
-      color: white;
-      font-weight: bold;
-      padding: 14px 32px;
-      font-size: 16px;
-      border: none;
-      border-radius: 12px;
+      background-color: #d3b277; color: white; font-weight: bold;
+      padding: 14px 32px; font-size: 16px; border: none; border-radius: 12px;
       cursor: pointer;
     }
-    /* badge rosso per messaggi non letti */
     .badge-unread {
       position: absolute;
-      top: 8px;
-      right: 8px;
-      background: #e53935;
-      color: #fff;
-      border-radius: 999px;
-      font-size: 11px;
-      line-height: 1;
-      padding: 4px 6px;
-      min-width: 18px;
-      text-align: center;
-      font-weight: bold;
+      top: 8px; right: 8px;
+      background: #e53935; color: #fff;
+      border-radius: 999px; font-size: 11px; line-height: 1;
+      padding: 4px 6px; min-width: 18px; text-align: center; font-weight: bold;
       box-shadow: 0 0 0 2px #fff9f0;
+      cursor: pointer;                /* <-- adesso è cliccabile */
     }
   </style>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
-      getFirestore,
-      collection,
-      query,
-      where,
-      getDocs
+      getFirestore, collection, query, where, getDocs
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -129,12 +88,11 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db   = getFirestore(app);
 
-    const email = localStorage.getItem("email");
+    const email        = localStorage.getItem("email");
     const slotElements = document.querySelectorAll(".slot");
 
-    // Slot "+" (vuoto)
     function renderEmptySlot(slotEl, index) {
       slotEl.style.border = "2px dashed #d4c6aa";
       slotEl.style.backgroundColor = "#f5efe2";
@@ -143,7 +101,6 @@
       slotEl.onclick = () => location.href = `attiva.html?slot=${index}`;
     }
 
-    // Slot pieno (QR)
     function renderFilledSlot(slotEl, index, data) {
       slotEl.innerHTML = `
         <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
@@ -159,70 +116,53 @@
       slotEl.onclick = null;
     }
 
-    // Aggiunge badge se ci sono messaggi non letti
     async function addUnreadBadgeIfAny(slotEl, qrCode) {
       try {
-        const codiceNorm = (qrCode || "").trim(); // rispetta maiuscole così come salvato
-        console.log("[Profilo] Cerco messaggi non letti per codice:", codiceNorm);
-
         const msgRef = collection(db, "messaggi");
-        // NB: questa query può richiedere un indice composto (codice + letto)
-        const qMsg = query(
-          msgRef,
-          where("codice", "==", codiceNorm),
-          where("letto", "==", false)
-        );
+        const qMsg   = query(msgRef, where("codice","==", qrCode), where("letto","==", false));
+        const snap   = await getDocs(qMsg);
 
-        const snapMsg = await getDocs(qMsg);
-        console.log(`[Profilo] Messaggi non letti trovati per ${codiceNorm}:`, snapMsg.size);
-
-        if (snapMsg.size > 0) {
+        if (snap.size > 0) {
           const badge = document.createElement("div");
           badge.className = "badge-unread";
           badge.title = "Nuovi messaggi";
-          badge.textContent = snapMsg.size > 9 ? "9+" : String(snapMsg.size);
+          badge.textContent = snap.size > 9 ? "9+" : String(snap.size);
+          // CLICK: apre messaggi.html per quel codice
+          badge.onclick = (e) => {
+            e.stopPropagation(); // evita che clicchi lo slot sotto
+            location.href = `messaggi.html?code=${encodeURIComponent(qrCode)}`;
+          };
           slotEl.appendChild(badge);
         }
       } catch (err) {
-        console.error("[Profilo] Errore query messaggi:", err);
-        // Se vedi in console un link "Create index", cliccalo e crea l’indice.
+        console.error("[Profilo] Errore query messaggi (forse serve indice composto):", err);
       }
     }
 
     async function caricaQR() {
       if (!email) return;
 
-      console.log("== PROFILO debug avviato ==");
-      console.log("email localStorage =", email);
-
-      // reset: mostra tutti gli slot vuoti
+      // reset iniziale
       slotElements.forEach((el, i) => renderEmptySlot(el, i));
 
-      // leggi i QR attivi dell'utente
+      // carica QR dell'utente
       const qrRef = collection(db, "qrcodes");
-      const q = query(qrRef, where("email", "==", email));
-      const snapshot = await getDocs(q);
+      const q     = query(qrRef, where("email","==", email));
+      const snap  = await getDocs(q);
 
-      console.log("Documenti trovati (qrcodes) =", snapshot.size);
-
-      snapshot.forEach(docu => {
-        const data = docu.data();
+      snap.forEach(d => {
+        const data  = d.data();
         const index = Number(data.slotIndex);
-        const slot = slotElements[index];
+        const slot  = slotElements[index];
         if (!slot) return;
 
-        console.log(`• slotIndex ${index} code ${data.code} label ${data.label}`);
         renderFilledSlot(slot, index, data);
-
-        // Controllo messaggi non letti per questo codice
         addUnreadBadgeIfAny(slot, data.code);
       });
-
-      console.log("Render completato.");
     }
 
     window.addEventListener("DOMContentLoaded", caricaQR);
-    window.addEventListener("pageshow", () => caricaQR()); // refresh se torni indietro
+    window.addEventListener("pageshow", () => caricaQR());
   </script>
 </head>
 <body>
