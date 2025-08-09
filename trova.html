@@ -61,6 +61,7 @@
       color: #222;
     }
   </style>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
@@ -84,15 +85,17 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    window.cercaCodice = async () => {
-      const codiceInserito = document.getElementById("codice").value.trim();
+    async function cercaCodice() {
+      const input = document.getElementById("codice");
       const risultato = document.getElementById("risultato");
+      const codiceInserito = (input.value || "").trim();
 
       if (!codiceInserito) {
         alert("Inserisci un codice univoco");
         return;
       }
 
+      // Query esatta sul campo 'code'
       const qrRef = collection(db, "qrcodes");
       const q = query(qrRef, where("code", "==", codiceInserito));
       const snapshot = await getDocs(q);
@@ -100,13 +103,29 @@
       if (snapshot.empty) {
         risultato.innerHTML = "<p>Codice non trovato.</p>";
       } else {
-        localStorage.setItem("lastCode", codiceInserito); // per usare in chat.html
+        // Salvo anche localmente per fallback, ma **passo in URL** il codice
+        localStorage.setItem("lastCode", codiceInserito);
+        const encoded = encodeURIComponent(codiceInserito);
         risultato.innerHTML = `
           <div class="chat-icon">💬</div>
-          <button onclick="location.href='chat.html'">Apri chat anonima</button>
+          <button onclick="location.href='chat.html?code=${encoded}'">Apri chat anonima</button>
         `;
       }
-    };
+    }
+
+    // Rende la funzione disponibile al bottone
+    window.cercaCodice = cercaCodice;
+
+    // Invio da tastiera
+    window.addEventListener("DOMContentLoaded", () => {
+      const input = document.getElementById("codice");
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          cercaCodice();
+        }
+      });
+    });
   </script>
 </head>
 <body>
