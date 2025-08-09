@@ -1,124 +1,131 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Attiva QR - BackTag</title>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    query,
+    where,
+    getDocs,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    doc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      query,
-      where,
-      getDocs,
-      addDoc,
-      updateDoc,
-      deleteDoc,
-      doc,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+    authDomain: "backtag-16de3.firebaseapp.com",
+    projectId: "backtag-16de3",
+    storageBucket: "backtag-16de3.appspot.com",
+    messagingSenderId: "415455463905",
+    appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+    measurementId: "G-6565LXTZW7"
+  };
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
-      authDomain: "backtag-16de3.firebaseapp.com",
-      projectId: "backtag-16de3",
-      storageBucket: "backtag-16de3.appspot.com",
-      messagingSenderId: "415455463905",
-      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
-      measurementId: "G-6565LXTZW7"
-    };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const params = new URLSearchParams(window.location.search);
+  const slot = parseInt(params.get("slot"));
+  const email = localStorage.getItem("email");
 
-    const params = new URLSearchParams(window.location.search);
-    const slot = parseInt(params.get("slot"));
-    const email = localStorage.getItem("email");
+  // questi li inizializziamo DOPO il caricamento del DOM
+  let codeInput, labelInput, messageInput, saveBtn, deleteBtn;
+  let qrDocId = null; // se è già registrato
 
-    const codeInput = document.getElementById("code");
-    const labelInput = document.getElementById("label");
-    const messageInput = document.getElementById("message");
-    const button = document.getElementById("salvaBtn");
-    const deleteBtn = document.getElementById("deleteBtn");
+  if (!email || isNaN(slot)) {
+    alert("Errore: dati mancanti. Torna al profilo.");
+    window.location.href = "profilo.html";
+  }
 
-    let qrDocId = null; // se è già registrato
-
-    if (!email || isNaN(slot)) {
-      alert("Errore: dati mancanti. Torna al profilo.");
-      window.location.href = "profilo.html";
-    }
-
-    async function controllaEsistente() {
-      const q = query(collection(db, "qrcodes"), where("email", "==", email), where("slotIndex", "==", slot));
+  async function controllaEsistente() {
+    try {
+      const q = query(
+        collection(db, "qrcodes"),
+        where("email", "==", email),
+        where("slotIndex", "==", slot)
+      );
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
         const docData = snapshot.docs[0];
         qrDocId = docData.id;
         const dati = docData.data();
-        codeInput.value = dati.code;
-        labelInput.value = dati.label;
-        messageInput.value = dati.message;
+        codeInput.value = dati.code || "";
+        labelInput.value = dati.label || "";
+        messageInput.value = dati.message || "";
         deleteBtn.style.display = "inline-block";
+      } else {
+        deleteBtn.style.display = "none";
       }
+    } catch (e) {
+      console.error("Errore durante il controllo esistenza:", e);
+      alert("Errore durante il controllo del QR: " + (e?.code || e?.message || e));
+    }
+  }
+
+  window.registraQR = async () => {
+    const code = codeInput.value.trim();
+    const label = labelInput.value.trim();
+    const message = messageInput.value.trim();
+
+    if (!code || !label || !message) {
+      alert("Completa tutti i campi.");
+      return;
     }
 
-    window.registraQR = async () => {
-      const code = codeInput.value.trim();
-      const label = labelInput.value.trim();
-      const message = messageInput.value.trim();
-
-      if (!code || !label || !message) {
-        alert("Completa tutti i campi.");
-        return;
-      }
-
-      try {
-        if (qrDocId) {
-          const qrRef = doc(db, "qrcodes", qrDocId);
-          await updateDoc(qrRef, {
-            code, label, message
-          });
-          alert("✅ QR aggiornato con successo.");
-        } else {
-          await addDoc(collection(db, "qrcodes"), {
-            email,
-            slotIndex: slot,
-            code,
-            label,
-            message,
-            createdAt: serverTimestamp()
-          });
-          alert("✅ QR registrato con successo.");
-        }
-
-        window.location.href = "profilo.html";
-      } catch (e) {
-        console.error(e);
-        alert("❌ Errore durante il salvataggio.");
-      }
-    };
-
-    window.eliminaQR = async () => {
-      if (!qrDocId) return;
-
-      const conferma = confirm("Sei sicuro di voler eliminare questo QR code?");
-      if (!conferma) return;
-
-      try {
+    try {
+      if (qrDocId) {
         const qrRef = doc(db, "qrcodes", qrDocId);
-        await deleteDoc(qrRef);
-        alert("QR eliminato con successo.");
-        window.location.href = "profilo.html";
-      } catch (e) {
-        console.error("Errore eliminazione:", e);
-        alert("Errore durante l'eliminazione.");
+        await updateDoc(qrRef, { code, label, message });
+        alert("✅ QR aggiornato con successo.");
+      } else {
+        await addDoc(collection(db, "qrcodes"), {
+          email,
+          slotIndex: slot,
+          code,
+          label,
+          message,
+          createdAt: serverTimestamp()
+        });
+        alert("✅ QR registrato con successo.");
       }
-    };
+      window.location.href = "profilo.html";
+    } catch (e) {
+      console.error("Errore salvataggio:", e);
+      alert("❌ Errore durante il salvataggio: " + (e?.code || e?.message || e));
+    }
+  };
 
-    window.addEventListener("DOMContentLoaded", controllaEsistente);
-  </script>
+  window.eliminaQR = async () => {
+    if (!qrDocId) return;
+
+    const conferma = confirm("Sei sicuro di voler eliminare questo QR code?");
+    if (!conferma) return;
+
+    try {
+      const qrRef = doc(db, "qrcodes", qrDocId);
+      await deleteDoc(qrRef);
+      alert("QR eliminato con successo.");
+      window.location.href = "profilo.html";
+    } catch (e) {
+      console.error("Errore eliminazione:", e);
+      alert("Errore durante l'eliminazione: " + (e?.code || e?.message || e));
+    }
+  };
+
+  // Inizializza i riferimenti al DOM SOLO dopo che il DOM è pronto
+  window.addEventListener("DOMContentLoaded", () => {
+    codeInput = document.getElementById("code");
+    labelInput = document.getElementById("label");
+    messageInput = document.getElementById("message");
+    saveBtn = document.getElementById("salvaBtn");
+    deleteBtn = document.getElementById("deleteBtn");
+
+    controllaEsistente();
+  });
+</script>
+
 
   <style>
     body {
