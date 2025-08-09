@@ -61,103 +61,118 @@
     <input id="label" type="text" placeholder="Nome dell’oggetto (es. Zaino scuola)" />
     <textarea id="message" placeholder="Messaggio visibile a chi trova il QR"></textarea>
 
-    <button id="salvaBtn">Salva</button>
-    <button id="deleteBtn">Elimina</button>
+    <!-- Bottoni collegati alle funzioni -->
+    <button id="salvaBtn" onclick="registraQR()">Salva</button>
+    <button id="deleteBtn" onclick="eliminaQR()">Elimina</button>
   </div>
 
-  <!-- Metto lo script IN FONDO e mi assicuro di chiuderlo correttamente -->
- <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc,
-    serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  <!-- Script in fondo, chiuso correttamente -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      deleteDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
-    authDomain: "backtag-16de3.firebaseapp.com",
-    projectId: "backtag-16de3",
-    storageBucket: "backtag-16de3.appspot.com",
-    messagingSenderId: "415455463905",
-    appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
-    measurementId: "G-6565LXTZW7"
-  };
+    // --- Firebase ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.appspot.com",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    // --- Riferimenti DOM ---
+    const codeInput = document.getElementById("code");
+    const labelInput = document.getElementById("label");
+    const messageInput = document.getElementById("message");
+    const deleteBtn = document.getElementById("deleteBtn");
 
-  const params = new URLSearchParams(window.location.search);
-  const slot = parseInt(params.get("slot"));
-  const email = localStorage.getItem("email");
+    // --- Parametri e sessione ---
+    const params = new URLSearchParams(window.location.search);
+    const slot = parseInt(params.get("slot"));
+    const email = localStorage.getItem("email");
 
-  const codeInput = document.getElementById("code");
-  const labelInput = document.getElementById("label");
-  const messageInput = document.getElementById("message");
-  const deleteBtn = document.getElementById("deleteBtn");
-
-  if (!email || isNaN(slot)) {
-    alert("Errore: dati mancanti. Torna al profilo.");
-    window.location.href = "profilo.html";
-  }
-
-  const docId = `${email}__${slot}`;
-  const qrRef = doc(db, "qrcodes", docId);
-
-  // Se esiste, precompila i campi e mostra "Elimina"
-  window.addEventListener("DOMContentLoaded", async () => {
-    const snap = await getDoc(qrRef);
-    if (snap.exists()) {
-      const d = snap.data();
-      codeInput.value = d.code || "";
-      labelInput.value = d.label || "";
-      messageInput.value = d.message || "";
-      deleteBtn.style.display = "inline-block";
-    }
-  });
-
-  // Salva (crea o aggiorna) SEMPRE lo stesso documento
-  window.registraQR = async () => {
-    const code = codeInput.value.trim();
-    const label = labelInput.value.trim();
-    const message = messageInput.value.trim();
-    if (!code || !label || !message) {
-      alert("Completa tutti i campi.");
-      return;
-    }
-
-    try {
-      const exists = (await getDoc(qrRef)).exists();
-      await setDoc(qrRef, {
-        email,
-        slotIndex: slot,
-        code,
-        label,
-        message,
-        updatedAt: serverTimestamp(),
-        ...(exists ? {} : { createdAt: serverTimestamp() })
-      }, { merge: true });
-
-      alert("✅ Salvato!");
+    if (!email || Number.isNaN(slot)) {
+      alert("Errore: dati mancanti. Torna al profilo.");
       window.location.href = "profilo.html";
-    } catch (e) {
-      console.error(e);
-      alert("❌ Errore durante il salvataggio.");
     }
-  };
 
-  // Elimina
-  window.eliminaQR = async () => {
-    try {
-      await (await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"))
-        .deleteDoc(qrRef);
-      alert("QR eliminato.");
-      window.location.href = "profilo.html";
-    } catch (e) {
-      console.error(e);
-      alert("Errore durante l'eliminazione.");
-    }
-  };
-</script>
+    // Documento con ID fisso per email+slot
+    const docId = `${email}__${slot}`;
+    const qrRef = doc(db, "qrcodes", docId);
+
+    // Precompila se esiste già
+    window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const snap = await getDoc(qrRef);
+        if (snap.exists()) {
+          const d = snap.data();
+          codeInput.value = d.code || "";
+          labelInput.value = d.label || "";
+          messageInput.value = d.message || "";
+          deleteBtn.style.display = "inline-block";
+        }
+      } catch (e) {
+        console.error("Errore lettura:", e);
+        alert("Errore nel caricamento dei dati.");
+      }
+    });
+
+    // Espongo funzioni globali per gli onclick
+    window.registraQR = async () => {
+      const code = codeInput.value.trim();
+      const label = labelInput.value.trim();
+      const message = messageInput.value.trim();
+      if (!code || !label || !message) {
+        alert("Completa tutti i campi.");
+        return;
+      }
+
+      try {
+        const snap = await getDoc(qrRef);
+        const exists = snap.exists();
+
+        await setDoc(qrRef, {
+          email,
+          slotIndex: slot,
+          code,
+          label,
+          message,
+          updatedAt: serverTimestamp(),
+          ...(exists ? {} : { createdAt: serverTimestamp() })
+        }, { merge: true });
+
+        alert("✅ Salvato!");
+        window.location.href = "profilo.html";
+      } catch (e) {
+        console.error("Errore salvataggio:", e);
+        alert("❌ Errore durante il salvataggio.");
+      }
+    };
+
+    window.eliminaQR = async () => {
+      const ok = confirm("Sei sicuro di voler eliminare questo QR?");
+      if (!ok) return;
+
+      try {
+        await deleteDoc(qrRef);
+        alert("QR eliminato.");
+        window.location.href = "profilo.html";
+      } catch (e) {
+        console.error("Errore eliminazione:", e);
+        alert("Errore durante l'eliminazione.");
+      }
+    };
+  </script>
+</body>
+</html>
