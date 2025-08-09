@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Messaggi - BackTag</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fefaf6;
+      color: #111;
+      margin: 0;
+      padding: 30px 16px;
+      text-align: center;
+    }
+    .logo { width: 300px; margin-bottom: 10px; }
+    h1 { font-size: 24px; margin: 6px 0 16px; }
+    .meta { color:#555; font-size:14px; margin-bottom: 16px; }
+    .thread {
+      max-width: 640px; margin: 0 auto 16px; padding: 16px;
+      background: #fff9f0; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,.05);
+      text-align: left;
+    }
+    .msg { padding:10px 12px; border-radius:10px; margin-bottom:10px; }
+    .from-finder { background:#f0e6d5; }
+    .from-owner { background:#d3b277; color:#fff; text-align:right; }
+    .ts { font-size:12px; color:#444; opacity:.8; margin-top:4px; }
+    .composer { max-width: 640px; margin: 0 auto; }
+    textarea {
+      width:100%; max-width:640px; height:110px; padding:14px; font-size:16px;
+      border:1px solid #ccc; border-radius:10px; box-sizing:border-box; margin-bottom:10px;
+    }
+    button {
+      background-color: #a6947c; color:#fff; border:none; padding:12px 22px;
+      font-size:16px; border-radius:10px; cursor:pointer;
+    }
+    .back { margin-top:16px; font-size:14px; display:inline-block; }
+  </style>
+</head>
+<body>
+  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
+  <h1>Messaggi</h1>
+  <div class="meta" id="meta"></div>
+
+  <div class="thread" id="thread">Caricamento…</div>
+
+  <div class="composer">
+    <textarea id="reply" placeholder="Scrivi una risposta al trovate…"></textarea><br>
+    <button id="sendBtn">Invia risposta</button>
+  </div>
+
+  <a class="back" href="profilo.html">← Torna al profilo</a>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, query, where, orderBy, getDocs,
+      addDoc, serverTimestamp, writeBatch, doc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.appspot.com",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const params = new URLSearchParams(location.search);
+    const codice = (params.get("code") || "").trim();
+    const email = localStorage.getItem("email");
+
+    const metaEl = document.getElementById("meta");
+    const threadEl = document.getElementById("thread");
+    const replyEl = document.getElementById("reply");
+    const sendBtn = document.getElementById("sendBtn");
+
+    if (!codice || !email) {
+      threadEl.textContent = "Dati mancanti.";
+      sendBtn.disabled = true;
+    } else {
+      metaEl.textContent = `QR: ${codice}`;
+      await loadThread();
+    }
+
+    async function loadThread() {
+      // prendi tutto il thread per questo proprietario e questo codice
+      const msgRef = collection(db, "messaggi");
+      const q = query(
+        msgRef,
+        where("email", "==", email),
+        where("codice", "==", codice),
+        orderBy("data", "asc")
+      );
+      const snap = await getDocs(q);
+
+      // segna non letti -> letti in un colpo
+      const batch = writeBatch(db);
+      snap.forEach(d => {
+        const m = d.data();
+        if (m.read === false) {
+          batch.update(doc(db, "messaggi", d.id), { read: true });
+        }
+      });
+      if (!snap.empty) await batch.commit();
+
+      // render
+      if (snap.empty) {
+        threadEl.textContent = "Nessun messaggio ancora.";
+        return;
+      }
+      threadEl.innerHTML = "";
+      snap.forEach(d => {
+        const m = d.data();
+        const div = document.createElement("div");
+        const fromOwner = m.from === "owner";
+        div.className = "msg " + (fromOwner ? "from-owner" : "from-finder");
+        const when = m.data?.toDate ? m.data.toDate() : (m.data && m.data.seconds ? new Date(m.data.seconds*1000) : null);
+        const ts = when ? when.toLocaleString() : "";
+        div.innerHTML = `
+          <div>${escapeHtml(m.testo || "")}</div>
+          <div class="ts">${ts}</div>
+        `;
+        threadEl.appendChild(div);
+      });
+    }
+
+    sendBtn.addEventListener("click", inviaRisposta);
+
+    async function inviaRisposta() {
+      const testo = (replyEl.value || "").trim();
+      if (!testo) return;
+      try {
+        await addDoc(collection(db, "messaggi"), {
+          email, // proprietario
+          codice, // questo QR
+          testo,
+          from: "owner", // distinguo nel thread
+          read: true, // per il proprietario è già letto
+          data: serverTimestamp()
+        });
+        replyEl.value = "";
+        await loadThread(); // refresh lista
+      } catch (e) {
+        alert("Errore invio risposta");
+        console.error(e);
+      }
+    }
+
+    // utilità semplice anti-HTML injection
+    function escapeHtml(s){
+      return s.replace(/[&<>"']/g, c => (
+        { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]
+      ));
+    }
+  </script>
+</body>
+</html>
