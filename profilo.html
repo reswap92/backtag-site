@@ -38,7 +38,7 @@
       margin: 30px 0;
     }
     .slot {
-      position: relative;
+      position: relative; /* per il badge */
       background-color: #f5efe2;
       border-radius: 16px;
       padding: 12px;
@@ -50,6 +50,7 @@
       border: 2px dashed #d4c6aa;
       cursor: pointer;
       box-sizing: border-box;
+      overflow: hidden; /* evita sovrapposizioni del badge */
     }
     .slot img {
       width: 60px;
@@ -63,6 +64,7 @@
     .slot-info {
       font-size: 14px;
       color: #333;
+      text-align: center;
     }
     .slot-buttons {
       display: flex;
@@ -77,20 +79,7 @@
       background-color: #a58c6b;
       color: white;
     }
-    .badge {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background-color: red;
-      color: white;
-      font-size: 12px;
-      padding: 3px 6px;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-    .cta {
-      margin-top: 20px;
-    }
+    .cta { margin-top: 20px; }
     .cta button {
       background-color: #d3b277;
       color: white;
@@ -101,7 +90,24 @@
       border-radius: 12px;
       cursor: pointer;
     }
+    /* badge rosso per messaggi non letti */
+    .badge-unread {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #e53935;
+      color: #fff;
+      border-radius: 999px;
+      font-size: 11px;
+      line-height: 1;
+      padding: 4px 6px;
+      min-width: 18px;
+      text-align: center;
+      font-weight: bold;
+      box-shadow: 0 0 0 2px #fff9f0;
+    }
   </style>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
@@ -124,51 +130,99 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+
     const email = localStorage.getItem("email");
     const slotElements = document.querySelectorAll(".slot");
 
+    // Slot "+" (vuoto)
+    function renderEmptySlot(slotEl, index) {
+      slotEl.style.border = "2px dashed #d4c6aa";
+      slotEl.style.backgroundColor = "#f5efe2";
+      slotEl.style.cursor = "pointer";
+      slotEl.innerHTML = `<span>+</span>`;
+      slotEl.onclick = () => location.href = `attiva.html?slot=${index}`;
+    }
+
+    // Slot pieno (QR)
+    function renderFilledSlot(slotEl, index, data) {
+      slotEl.innerHTML = `
+        <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
+        <div class="slot-info"><strong>${data.label}</strong><br><small>${data.code}</small></div>
+        <div class="slot-buttons">
+          <button onclick="location.href='attiva.html?slot=${index}'">✏️</button>
+          <button onclick="location.href='monitor.html?code=${encodeURIComponent(data.code)}'">📈</button>
+        </div>
+      `;
+      slotEl.style.border = "2px solid #a58c6b";
+      slotEl.style.backgroundColor = "#fff";
+      slotEl.style.cursor = "default";
+      slotEl.onclick = null;
+    }
+
+    // Aggiunge badge se ci sono messaggi non letti
+    async function addUnreadBadgeIfAny(slotEl, qrCode) {
+      try {
+        const codiceNorm = (qrCode || "").trim(); // rispetta maiuscole così come salvato
+        console.log("[Profilo] Cerco messaggi non letti per codice:", codiceNorm);
+
+        const msgRef = collection(db, "messaggi");
+        // NB: questa query può richiedere un indice composto (codice + letto)
+        const qMsg = query(
+          msgRef,
+          where("codice", "==", codiceNorm),
+          where("letto", "==", false)
+        );
+
+        const snapMsg = await getDocs(qMsg);
+        console.log(`[Profilo] Messaggi non letti trovati per ${codiceNorm}:`, snapMsg.size);
+
+        if (snapMsg.size > 0) {
+          const badge = document.createElement("div");
+          badge.className = "badge-unread";
+          badge.title = "Nuovi messaggi";
+          badge.textContent = snapMsg.size > 9 ? "9+" : String(snapMsg.size);
+          slotEl.appendChild(badge);
+        }
+      } catch (err) {
+        console.error("[Profilo] Errore query messaggi:", err);
+        // Se vedi in console un link "Create index", cliccalo e crea l’indice.
+      }
+    }
+
     async function caricaQR() {
       if (!email) return;
+
+      console.log("== PROFILO debug avviato ==");
+      console.log("email localStorage =", email);
+
+      // reset: mostra tutti gli slot vuoti
+      slotElements.forEach((el, i) => renderEmptySlot(el, i));
+
+      // leggi i QR attivi dell'utente
       const qrRef = collection(db, "qrcodes");
       const q = query(qrRef, where("email", "==", email));
       const snapshot = await getDocs(q);
 
-      snapshot.forEach(async docSnap => {
-        const data = docSnap.data();
-        const index = data.slotIndex;
-        const slot = slotElements[index];
-        if (slot) {
-          slot.innerHTML = `
-            <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
-            <div class="slot-info"><strong>${data.label}</strong><br><small>${data.code}</small></div>
-            <div class="slot-buttons">
-              <button onclick="location.href='attiva.html?slot=${index}'">✏️</button>
-              <button onclick="location.href='monitor.html?code=${encodeURIComponent(data.code)}'">📈</button>
-            </div>
-          `;
-          slot.style.border = "2px solid #a58c6b";
-          slot.style.backgroundColor = "#fff";
-          slot.style.cursor = "default";
-          slot.onclick = null;
+      console.log("Documenti trovati (qrcodes) =", snapshot.size);
 
-          // 🔴 Controllo messaggi non letti
-          const msgRef = collection(db, "messaggi");
-          const qMsg = query(msgRef, where("codice", "==", data.code), where("letto", "==", false));
-          const snapMsg = await getDocs(qMsg);
-          if (!snapMsg.empty) {
-            const badge = document.createElement("div");
-            badge.classList.add("badge");
-            badge.textContent = snapMsg.size;
-            badge.onclick = () => {
-              location.href = `messaggi.html?code=${encodeURIComponent(data.code)}`;
-            };
-            slot.appendChild(badge);
-          }
-        }
+      snapshot.forEach(docu => {
+        const data = docu.data();
+        const index = Number(data.slotIndex);
+        const slot = slotElements[index];
+        if (!slot) return;
+
+        console.log(`• slotIndex ${index} code ${data.code} label ${data.label}`);
+        renderFilledSlot(slot, index, data);
+
+        // Controllo messaggi non letti per questo codice
+        addUnreadBadgeIfAny(slot, data.code);
       });
+
+      console.log("Render completato.");
     }
 
     window.addEventListener("DOMContentLoaded", caricaQR);
+    window.addEventListener("pageshow", () => caricaQR()); // refresh se torni indietro
   </script>
 </head>
 <body>
