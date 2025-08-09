@@ -92,7 +92,22 @@
     }
   </style>
 
- <script type="module">
+<script type="module">
+  // === pannellino debug (visibile solo se c'è ?debug=1) ===
+  const showDebug = new URLSearchParams(location.search).get('debug') === '1';
+  const dbgBar = document.createElement('div');
+  dbgBar.id = 'dbgbar';
+  dbgBar.style.cssText = `
+    display:${showDebug?'block':'none'};
+    position:fixed;top:0;left:0;right:0;z-index:9999;
+    background:#fff3cd;color:#111;border-bottom:1px solid #e0c97f;
+    font:12px/1.4 monospace;padding:6px 10px;max-height:35vh;overflow:auto;
+  `;
+  document.body.appendChild(dbgBar);
+  const log = (...a)=>{ console.log(...a); dbgBar.innerHTML += a.join(' ')+'<br>'; };
+
+  log('== PROFILO debug avviato ==');
+
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
     getFirestore,
@@ -116,9 +131,10 @@
   const db = getFirestore(app);
 
   const email = localStorage.getItem("email");
+  log('email localStorage =', email ?? 'NULL');
+
   const slotElements = document.querySelectorAll(".slot");
 
-  // Rimetti lo slot "vuoto" (+) identico al tuo HTML
   function renderEmptySlot(slotEl, index) {
     slotEl.style.border = "2px dashed #d4c6aa";
     slotEl.style.backgroundColor = "#f5efe2";
@@ -127,7 +143,6 @@
     slotEl.onclick = () => location.href = `attiva.html?slot=${index}`;
   }
 
-  // Render slot pieno
   function renderFilledSlot(slotEl, index, data) {
     slotEl.innerHTML = `
       <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
@@ -144,29 +159,35 @@
   }
 
   async function caricaQR() {
-    if (!email) return;
+    try {
+      // reset a vuoto
+      slotElements.forEach((el, i) => renderEmptySlot(el, i));
 
-    // 1) reset: tutti vuoti
-    slotElements.forEach((el, i) => renderEmptySlot(el, i));
+      if (!email) {
+        log('ERRORE: email mancante in localStorage');
+        return;
+      }
 
-    // 2) leggi Firestore e riempi quelli attivi
-    const qrRef = collection(db, "qrcodes");
-    const q = query(qrRef, where("email", "==", email));
-    const snapshot = await getDocs(q);
+      log('Lettura Firestore… (collezione "qrcodes")');
+      const qrRef = collection(db, "qrcodes");
+      const q = query(qrRef, where("email", "==", email));
+      const snapshot = await getDocs(q);
+      log('Documenti trovati =', snapshot.size);
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const index = Number(data.slotIndex);
-      const slot = slotElements[index];
-      if (slot) renderFilledSlot(slot, index, data);
-    });
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const index = Number(data.slotIndex);
+        log(' - slotIndex', index, 'code', data.code, 'label', data.label);
+        const slot = slotElements[index];
+        if (slot) renderFilledSlot(slot, index, data);
+      });
+
+      log('Render completato.');
+    } catch (e) {
+      log('FIRESTORE ERROR:', e?.code || '', e?.message || e);
+    }
   }
 
-  // Carica al primo load
   window.addEventListener("DOMContentLoaded", caricaQR);
-
-  // Quando torni indietro dal browser (bfcache), ricarica i dati
-  window.addEventListener("pageshow", () => {
-    caricaQR();
-  });
+  window.addEventListener("pageshow", () => caricaQR());
 </script>
