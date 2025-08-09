@@ -62,7 +62,6 @@
     .slot-info {
       font-size: 14px;
       color: #333;
-      text-align: center;
     }
     .slot-buttons {
       display: flex;
@@ -91,93 +90,79 @@
       cursor: pointer;
     }
   </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    query,
-    where,
-    getDocs
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.appspot.com",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
-    authDomain: "backtag-16de3.firebaseapp.com",
-    projectId: "backtag-16de3",
-    storageBucket: "backtag-16de3.appspot.com",
-    messagingSenderId: "415455463905",
-    appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
-    measurementId: "G-6565LXTZW7"
-  };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const email = localStorage.getItem("email");
+    const slotElements = document.querySelectorAll(".slot");
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    async function caricaQR() {
+      if (!email) return;
+      const qrRef = collection(db, "qrcodes");
+      const q = query(qrRef, where("email", "==", email));
+      const snapshot = await getDocs(q);
 
-  const email = localStorage.getItem("email");
-  const slotEls = document.querySelectorAll(".slot");
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const index = data.slotIndex;
+        const slot = slotElements[index];
+        if (slot) {
+          slot.innerHTML = `
+            <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
+            <div class="slot-info"><strong>${data.label}</strong><br><small>${data.code}</small></div>
+            <div class="slot-buttons">
+              <button onclick="location.href='attiva.html?slot=${index}'">✏️</button>
+              <button onclick="location.href='monitor.html?code=${encodeURIComponent(data.code)}'">📈</button>
+            </div>
+          `;
+          slot.style.border = "2px solid #a58c6b";
+          slot.style.backgroundColor = "#fff";
+          slot.style.cursor = "default";
+          slot.onclick = null;
+        }
+      });
+    }
 
-  // --- rendering identico a prima ---
-  function renderEmptySlot(el, i) {
-    el.style.border = "2px dashed #d4c6aa";
-    el.style.backgroundColor = "#f5efe2";
-    el.style.cursor = "pointer";
-    el.innerHTML = `<span>+</span>`;
-    el.onclick = () => location.href = `attiva.html?slot=${i}`;
-  }
-  function renderFilledSlot(el, i, data) {
-    el.innerHTML = `
-      <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
-      <div class="slot-info"><strong>${data.label}</strong><br><small>${data.code}</small></div>
-      <div class="slot-buttons">
-        <button onclick="location.href='attiva.html?slot=${i}'">✏️</button>
-        <button onclick="location.href='monitor.html?code=${encodeURIComponent(data.code)}'">📈</button>
-      </div>
-    `;
-    el.style.border = "2px solid #a58c6b";
-    el.style.backgroundColor = "#fff";
-    el.style.cursor = "default";
-    el.onclick = null;
-  }
+    window.addEventListener("DOMContentLoaded", caricaQR);
+  </script>
+</head>
+<body>
+  <div class="card">
+    <img src="logo-backtag.png" alt="Logo BackTag" class="logo">
+    <h1>Profilo</h1>
+    <h3>QR attivi</h3>
 
-  function tsOf(d) {
-    // scegli il più recente tra updatedAt e createdAt
-    const u = d.updatedAt?.seconds || 0;
-    const c = d.createdAt?.seconds || 0;
-    return Math.max(u, c);
-  }
+    <div class="qr-grid">
+      <div class="slot" onclick="location.href='attiva.html?slot=0'"><span>+</span></div>
+      <div class="slot" onclick="location.href='attiva.html?slot=1'"><span>+</span></div>
+      <div class="slot" onclick="location.href='attiva.html?slot=2'"><span>+</span></div>
+      <div class="slot" onclick="location.href='attiva.html?slot=3'"><span>+</span></div>
+      <div class="slot" onclick="location.href='attiva.html?slot=4'"><span>+</span></div>
+      <div class="slot" onclick="location.href='attiva.html?slot=5'"><span>+</span></div>
+    </div>
 
-  async function caricaQR() {
-    if (!email) return;
-
-    // reset: tutti vuoti
-    slotEls.forEach((el, i) => renderEmptySlot(el, i));
-
-    // leggi tutti i doc dell'utente
-    const qrcRef = collection(db, "qrcodes");
-    const q = query(qrcRef, where("email", "==", email));
-    const snap = await getDocs(q);
-
-    // scegli il più recente per ogni slotIndex
-    const latestBySlot = new Map(); // slotIndex -> {data, docId}
-    snap.forEach(doc => {
-      const data = doc.data();
-      const i = Number(data.slotIndex);
-      if (Number.isNaN(i)) return;
-      const cur = latestBySlot.get(i);
-      if (!cur || tsOf(data) > tsOf(cur.data)) {
-        latestBySlot.set(i, { data, docId: doc.id });
-      }
-    });
-
-    // renderizza solo il più recente per slot
-    latestBySlot.forEach((entry, i) => {
-      const el = slotEls[i];
-      if (el) renderFilledSlot(el, i, entry.data);
-    });
-  }
-
-  window.addEventListener("DOMContentLoaded", caricaQR);
-  window.addEventListener("pageshow", caricaQR); // ricarica quando torni indietro
-</script>
+    <div class="cta">
+      <button onclick="alert('Acquisto 10 slot aggiuntivi a 0.99€')">Attiva ora</button>
+    </div>
+  </div>
+</body>
+</html>
