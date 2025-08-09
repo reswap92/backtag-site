@@ -110,7 +110,7 @@
         emailDestinatario = doc.email;
         form.style.display = "block";
 
-        // 🔴 Salva la SCANSIONE nel database
+        // Salva la SCANSIONE nel database (tracking base)
         try {
           await addDoc(collection(db, "scansioni"), {
             codice: codiceQR,
@@ -127,7 +127,8 @@
       }
     }
 
-    async function inviaMessaggio() {
+    // ESPONI la funzione sul window per l'onclick del bottone
+    window.inviaMessaggio = async function () {
       const testo = document.getElementById("messaggio").value.trim();
       if (!testo || !emailDestinatario) return;
 
@@ -144,7 +145,7 @@
         alert("Errore nell'invio del messaggio");
         console.error(e);
       }
-    }
+    };
 
     window.addEventListener("DOMContentLoaded", controllaCodice);
   </script>
