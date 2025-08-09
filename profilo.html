@@ -93,21 +93,6 @@
   </style>
 
 <script type="module">
-  // === pannellino debug (visibile solo se c'è ?debug=1) ===
-  const showDebug = new URLSearchParams(location.search).get('debug') === '1';
-  const dbgBar = document.createElement('div');
-  dbgBar.id = 'dbgbar';
-  dbgBar.style.cssText = `
-    display:${showDebug?'block':'none'};
-    position:fixed;top:0;left:0;right:0;z-index:9999;
-    background:#fff3cd;color:#111;border-bottom:1px solid #e0c97f;
-    font:12px/1.4 monospace;padding:6px 10px;max-height:35vh;overflow:auto;
-  `;
-  document.body.appendChild(dbgBar);
-  const log = (...a)=>{ console.log(...a); dbgBar.innerHTML += a.join(' ')+'<br>'; };
-
-  log('== PROFILO debug avviato ==');
-
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
     getFirestore,
@@ -131,63 +116,68 @@
   const db = getFirestore(app);
 
   const email = localStorage.getItem("email");
-  log('email localStorage =', email ?? 'NULL');
+  const slotEls = document.querySelectorAll(".slot");
 
-  const slotElements = document.querySelectorAll(".slot");
-
-  function renderEmptySlot(slotEl, index) {
-    slotEl.style.border = "2px dashed #d4c6aa";
-    slotEl.style.backgroundColor = "#f5efe2";
-    slotEl.style.cursor = "pointer";
-    slotEl.innerHTML = `<span>+</span>`;
-    slotEl.onclick = () => location.href = `attiva.html?slot=${index}`;
+  // --- rendering identico a prima ---
+  function renderEmptySlot(el, i) {
+    el.style.border = "2px dashed #d4c6aa";
+    el.style.backgroundColor = "#f5efe2";
+    el.style.cursor = "pointer";
+    el.innerHTML = `<span>+</span>`;
+    el.onclick = () => location.href = `attiva.html?slot=${i}`;
   }
-
-  function renderFilledSlot(slotEl, index, data) {
-    slotEl.innerHTML = `
+  function renderFilledSlot(el, i, data) {
+    el.innerHTML = `
       <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
       <div class="slot-info"><strong>${data.label}</strong><br><small>${data.code}</small></div>
       <div class="slot-buttons">
-        <button onclick="location.href='attiva.html?slot=${index}'">✏️</button>
+        <button onclick="location.href='attiva.html?slot=${i}'">✏️</button>
         <button onclick="location.href='monitor.html?code=${encodeURIComponent(data.code)}'">📈</button>
       </div>
     `;
-    slotEl.style.border = "2px solid #a58c6b";
-    slotEl.style.backgroundColor = "#fff";
-    slotEl.style.cursor = "default";
-    slotEl.onclick = null;
+    el.style.border = "2px solid #a58c6b";
+    el.style.backgroundColor = "#fff";
+    el.style.cursor = "default";
+    el.onclick = null;
+  }
+
+  function tsOf(d) {
+    // scegli il più recente tra updatedAt e createdAt
+    const u = d.updatedAt?.seconds || 0;
+    const c = d.createdAt?.seconds || 0;
+    return Math.max(u, c);
   }
 
   async function caricaQR() {
-    try {
-      // reset a vuoto
-      slotElements.forEach((el, i) => renderEmptySlot(el, i));
+    if (!email) return;
 
-      if (!email) {
-        log('ERRORE: email mancante in localStorage');
-        return;
+    // reset: tutti vuoti
+    slotEls.forEach((el, i) => renderEmptySlot(el, i));
+
+    // leggi tutti i doc dell'utente
+    const qrcRef = collection(db, "qrcodes");
+    const q = query(qrcRef, where("email", "==", email));
+    const snap = await getDocs(q);
+
+    // scegli il più recente per ogni slotIndex
+    const latestBySlot = new Map(); // slotIndex -> {data, docId}
+    snap.forEach(doc => {
+      const data = doc.data();
+      const i = Number(data.slotIndex);
+      if (Number.isNaN(i)) return;
+      const cur = latestBySlot.get(i);
+      if (!cur || tsOf(data) > tsOf(cur.data)) {
+        latestBySlot.set(i, { data, docId: doc.id });
       }
+    });
 
-      log('Lettura Firestore… (collezione "qrcodes")');
-      const qrRef = collection(db, "qrcodes");
-      const q = query(qrRef, where("email", "==", email));
-      const snapshot = await getDocs(q);
-      log('Documenti trovati =', snapshot.size);
-
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        const index = Number(data.slotIndex);
-        log(' - slotIndex', index, 'code', data.code, 'label', data.label);
-        const slot = slotElements[index];
-        if (slot) renderFilledSlot(slot, index, data);
-      });
-
-      log('Render completato.');
-    } catch (e) {
-      log('FIRESTORE ERROR:', e?.code || '', e?.message || e);
-    }
+    // renderizza solo il più recente per slot
+    latestBySlot.forEach((entry, i) => {
+      const el = slotEls[i];
+      if (el) renderFilledSlot(el, i, entry.data);
+    });
   }
 
   window.addEventListener("DOMContentLoaded", caricaQR);
-  window.addEventListener("pageshow", () => caricaQR());
+  window.addEventListener("pageshow", caricaQR); // ricarica quando torni indietro
 </script>
