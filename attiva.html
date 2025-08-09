@@ -66,122 +66,98 @@
   </div>
 
   <!-- Metto lo script IN FONDO e mi assicuro di chiuderlo correttamente -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      query,
-      where,
-      getDocs,
-      setDoc,
-      doc,
-      deleteDoc,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+ <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
-      authDomain: "backtag-16de3.firebaseapp.com",
-      projectId: "backtag-16de3",
-      storageBucket: "backtag-16de3.appspot.com",
-      messagingSenderId: "415455463905",
-      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
-      measurementId: "G-6565LXTZW7"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+    authDomain: "backtag-16de3.firebaseapp.com",
+    projectId: "backtag-16de3",
+    storageBucket: "backtag-16de3.appspot.com",
+    messagingSenderId: "415455463905",
+    appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+    measurementId: "G-6565LXTZW7"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const params = new URLSearchParams(window.location.search);
-    const slot = parseInt(params.get("slot"));
-    const email = localStorage.getItem("email");
+  const params = new URLSearchParams(window.location.search);
+  const slot = parseInt(params.get("slot"));
+  const email = localStorage.getItem("email");
 
-    const codeInput = document.getElementById("code");
-    const labelInput = document.getElementById("label");
-    const messageInput = document.getElementById("message");
-    const salvaBtn = document.getElementById("salvaBtn");
-    const deleteBtn = document.getElementById("deleteBtn");
+  const codeInput = document.getElementById("code");
+  const labelInput = document.getElementById("label");
+  const messageInput = document.getElementById("message");
+  const deleteBtn = document.getElementById("deleteBtn");
 
-    let qrDocId = null; // id documento se esiste già
+  if (!email || isNaN(slot)) {
+    alert("Errore: dati mancanti. Torna al profilo.");
+    window.location.href = "profilo.html";
+  }
 
-    if (!email || Number.isNaN(slot)) {
-      alert("Errore: dati mancanti. Torna al profilo.");
+  const docId = `${email}__${slot}`;
+  const qrRef = doc(db, "qrcodes", docId);
+
+  // Se esiste, precompila i campi e mostra "Elimina"
+  window.addEventListener("DOMContentLoaded", async () => {
+    const snap = await getDoc(qrRef);
+    if (snap.exists()) {
+      const d = snap.data();
+      codeInput.value = d.code || "";
+      labelInput.value = d.label || "";
+      messageInput.value = d.message || "";
+      deleteBtn.style.display = "inline-block";
+    }
+  });
+
+  // Salva (crea o aggiorna) SEMPRE lo stesso documento
+  window.registraQR = async () => {
+    const code = codeInput.value.trim();
+    const label = labelInput.value.trim();
+    const message = messageInput.value.trim();
+    if (!code || !label || !message) {
+      alert("Completa tutti i campi.");
+      return;
+    }
+
+    try {
+      const exists = (await getDoc(qrRef)).exists();
+      await setDoc(qrRef, {
+        email,
+        slotIndex: slot,
+        code,
+        label,
+        message,
+        updatedAt: serverTimestamp(),
+        ...(exists ? {} : { createdAt: serverTimestamp() })
+      }, { merge: true });
+
+      alert("✅ Salvato!");
       window.location.href = "profilo.html";
+    } catch (e) {
+      console.error(e);
+      alert("❌ Errore durante il salvataggio.");
     }
+  };
 
-    // carica dati se lo slot è già attivo
-    async function controllaEsistente() {
-      const q = query(
-        collection(db, "qrcodes"),
-        where("email", "==", email),
-        where("slotIndex", "==", slot)
-      );
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        const d = snapshot.docs[0];
-        qrDocId = d.id;
-        const dati = d.data();
-        codeInput.value = dati.code || "";
-        labelInput.value = dati.label || "";
-        messageInput.value = dati.message || "";
-        deleteBtn.style.display = "inline-block";
-      }
+  // Elimina
+  window.eliminaQR = async () => {
+    try {
+      await (await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"))
+        .deleteDoc(qrRef);
+      alert("QR eliminato.");
+      window.location.href = "profilo.html";
+    } catch (e) {
+      console.error(e);
+      alert("Errore durante l'eliminazione.");
     }
-
-    // salva (crea/aggiorna) con setDoc su chiave deterministica
-    async function salva() {
-      const code = codeInput.value.trim();
-      const label = labelInput.value.trim();
-      const message = messageInput.value.trim();
-
-      if (!code || !label || !message) {
-        alert("Completa tutti i campi.");
-        return;
-      }
-
-      try {
-        const docId = `${email}__${slot}`; // chiave stabile per lo slot dell'utente
-        const ref = doc(db, "qrcodes", docId);
-        await setDoc(ref, {
-          email,
-          slotIndex: slot,
-          code,
-          label,
-          message,
-          updatedAt: serverTimestamp(),
-          createdAt: qrDocId ? undefined : serverTimestamp()
-        }, { merge: true });
-
-        alert("✅ Dati salvati.");
-        window.location.href = "profilo.html";
-      } catch (e) {
-        console.error(e);
-        alert("❌ Errore durante il salvataggio.");
-      }
-    }
-
-    async function elimina() {
-      const ok = confirm("Sei sicuro di voler eliminare questo QR?");
-      if (!ok) return;
-
-      try {
-        const docId = `${email}__${slot}`;
-        await deleteDoc(doc(db, "qrcodes", docId));
-        alert("QR eliminato.");
-        window.location.href = "profilo.html";
-      } catch (e) {
-        console.error(e);
-        alert("Errore durante l'eliminazione.");
-      }
-    }
-
-    // bind
-    salvaBtn.addEventListener("click", salva);
-    deleteBtn.addEventListener("click", elimina);
-
-    // start
-    controllaEsistente();
-  </script>
-</body>
-</html>
+  };
+</script>
