@@ -1,66 +1,29 @@
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    query,
-    where,
-    getDocs,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    doc,
-    serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
-    authDomain: "backtag-16de3.firebaseapp.com",
-    projectId: "backtag-16de3",
-    storageBucket: "backtag-16de3.appspot.com",
-    messagingSenderId: "415455463905",
-    appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
-    measurementId: "G-6565LXTZW7"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  const params = new URLSearchParams(window.location.search);
-  const slot = parseInt(params.get("slot"));
-  const email = localStorage.getItem("email");
-
-  // questi li inizializziamo DOPO il caricamento del DOM
-  let codeInput, labelInput, messageInput, saveBtn, deleteBtn;
-  let qrDocId = null; // se è già registrato
 
   if (!email || isNaN(slot)) {
     alert("Errore: dati mancanti. Torna al profilo.");
     window.location.href = "profilo.html";
   }
 
-  async function controllaEsistente() {
+  // DOM refs (dopo che il DOM è pronto)
+  let codeInput, labelInput, messageInput, deleteBtn;
+  const docId = `${email}_${slot}`; // <-- ID fisso per email+slot
+  const qrRef = doc(db, "qrcodes", docId);
+
+  async function caricaEsistente() {
     try {
-      const q = query(
-        collection(db, "qrcodes"),
-        where("email", "==", email),
-        where("slotIndex", "==", slot)
-      );
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        const docData = snapshot.docs[0];
-        qrDocId = docData.id;
-        const dati = docData.data();
-        codeInput.value = dati.code || "";
-        labelInput.value = dati.label || "";
-        messageInput.value = dati.message || "";
+      const snap = await getDoc(qrRef);
+      if (snap.exists()) {
+        const d = snap.data();
+        codeInput.value = d.code || "";
+        labelInput.value = d.label || "";
+        messageInput.value = d.message || "";
         deleteBtn.style.display = "inline-block";
       } else {
         deleteBtn.style.display = "none";
       }
     } catch (e) {
-      console.error("Errore durante il controllo esistenza:", e);
-      alert("Errore durante il controllo del QR: " + (e?.code || e?.message || e));
+      console.error("Errore lettura:", e);
+      alert("Errore nel caricamento: " + (e?.code || e?.message || e));
     }
   }
 
@@ -68,28 +31,21 @@
     const code = codeInput.value.trim();
     const label = labelInput.value.trim();
     const message = messageInput.value.trim();
-
     if (!code || !label || !message) {
       alert("Completa tutti i campi.");
       return;
     }
-
     try {
-      if (qrDocId) {
-        const qrRef = doc(db, "qrcodes", qrDocId);
-        await updateDoc(qrRef, { code, label, message });
-        alert("✅ QR aggiornato con successo.");
-      } else {
-        await addDoc(collection(db, "qrcodes"), {
-          email,
-          slotIndex: slot,
-          code,
-          label,
-          message,
-          createdAt: serverTimestamp()
-        });
-        alert("✅ QR registrato con successo.");
-      }
+      await setDoc(qrRef, {
+        email,
+        slotIndex: slot,
+        code,
+        label,
+        message,
+        createdAt: serverTimestamp(), // se non esiste, Firestore lo imposta comunque
+        updatedAt: serverTimestamp()
+      }, { merge: true }); // <-- sovrascrive invece di creare duplicati
+      alert("✅ Salvato con successo.");
       window.location.href = "profilo.html";
     } catch (e) {
       console.error("Errore salvataggio:", e);
@@ -98,15 +54,10 @@
   };
 
   window.eliminaQR = async () => {
-    if (!qrDocId) return;
-
-    const conferma = confirm("Sei sicuro di voler eliminare questo QR code?");
-    if (!conferma) return;
-
+    if (!confirm("Sei sicuro di voler eliminare questo QR code?")) return;
     try {
-      const qrRef = doc(db, "qrcodes", qrDocId);
       await deleteDoc(qrRef);
-      alert("QR eliminato con successo.");
+      alert("QR eliminato.");
       window.location.href = "profilo.html";
     } catch (e) {
       console.error("Errore eliminazione:", e);
@@ -114,77 +65,11 @@
     }
   };
 
-  // Inizializza i riferimenti al DOM SOLO dopo che il DOM è pronto
   window.addEventListener("DOMContentLoaded", () => {
     codeInput = document.getElementById("code");
     labelInput = document.getElementById("label");
     messageInput = document.getElementById("message");
-    saveBtn = document.getElementById("salvaBtn");
     deleteBtn = document.getElementById("deleteBtn");
-
-    controllaEsistente();
+    caricaEsistente();
   });
 </script>
-
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #fefaf6;
-      color: #111;
-      text-align: center;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-    .logo {
-      height: 200px;
-      margin-bottom: 20px;
-    }
-    h1 {
-      font-size: 2em;
-      margin-bottom: 20px;
-    }
-    input, textarea {
-      width: 100%;
-      max-width: 500px;
-      padding: 14px;
-      font-size: 16px;
-      margin-bottom: 20px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
-    button {
-      background-color: #a6947c;
-      color: white;
-      border: none;
-      padding: 15px 30px;
-      font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    #deleteBtn {
-      background-color: #c04444;
-      margin-left: 10px;
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <img src="logo-backtag.png" alt="Logo BackTag" class="logo">
-    <h1>Attiva il tuo QR Code</h1>
-
-    <input id="code" type="text" placeholder="Codice univoco del QR" />
-    <input id="label" type="text" placeholder="Nome dell’oggetto (es. Zaino scuola)" />
-    <textarea id="message" placeholder="Messaggio visibile a chi trova il QR"></textarea>
-
-    <button id="salvaBtn" onclick="registraQR()">Salva</button>
-    <button id="deleteBtn" onclick="eliminaQR()">Elimina</button>
-  </div>
-</body>
-</html>
