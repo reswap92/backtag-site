@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BackTag — Aggiungi 10 slot</title>
+  <style>
+    :root{
+      --bg:#F5ECE1;       /* beige caldo */
+      --ink:#141414;      /* testo scuro */
+      --bronze:#A88C66;   /* bottone principale */
+      --card:#FCF7F0;
+      --line:#D2C3AF;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg); color:var(--ink);
+      display:flex; min-height:100dvh; align-items:center; justify-content:center; padding:32px;
+    }
+    .wrap{max-width:720px; width:100%}
+    .logo{display:flex; align-items:center; justify-content:center; gap:14px; margin:24px 0 28px}
+    .logo img{width:300px; height:auto; display:block}
+    .card{
+      background:var(--card); border:1.5px solid var(--line);
+      border-radius:28px; padding:28px 22px; text-align:center;
+      box-shadow:0 18px 40px rgba(0,0,0,.06);
+    }
+    h1{font-size:34px; margin:8px 0 6px}
+    p{opacity:.9; margin:8px 0 18px}
+    .badge{
+      display:inline-block; border:1.5px solid var(--line); padding:10px 16px;
+      border-radius:14px; background:#f0e6d8; margin:6px 0 18px; font-weight:600;
+    }
+    .btn{
+      display:inline-block; width:100%; max-width:560px;
+      border:none; border-radius:22px; padding:18px 20px; font-size:18px;
+      background:var(--bronze); color:#fff; font-weight:700; cursor:pointer;
+      transition:transform .06s ease;
+    }
+    .btn:active{transform:translateY(1px)}
+    .foot{margin-top:18px; font-size:14px; opacity:.9}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="logo">
+      <!-- Sostituisci con il tuo file logo ufficiale (300px) -->
+      <img src="assets/logo-backtag-300.png" alt="BackTag" />
+    </div>
+
+    <section class="card">
+      <h1>Aggiungi 10 slot extra</h1>
+      <div class="badge">€ 1,99 — pagamento una tantum</div>
+      <p>Nessun abbonamento. Dopo il pagamento torni al profilo con 10 nuovi slot disponibili.</p>
+
+      <button class="btn" onclick="location.href='pagamento.html'">
+        Acquista ora i tuoi slot
+      </button>
+
+      <div class="foot">Paghi con PayPal o Carta. Ritorno automatico al profilo.</div>
+    </section>
+  </main>
+</body>
+</html>
