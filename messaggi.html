@@ -5,36 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Messaggi - BackTag</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #fefaf6;
-      color: #111;
-      margin: 0;
-      padding: 30px 16px;
-      text-align: center;
-    }
-    .logo { width: 300px; margin-bottom: 10px; }
-    h1 { font-size: 24px; margin: 6px 0 16px; }
-    .meta { color:#555; font-size:14px; margin-bottom: 16px; }
-    .thread {
-      max-width: 640px; margin: 0 auto 16px; padding: 16px;
-      background: #fff9f0; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,.05);
-      text-align: left;
-    }
-    .msg { padding:10px 12px; border-radius:10px; margin-bottom:10px; }
-    .from-finder { background:#f0e6d5; }
-    .from-owner { background:#d3b277; color:#fff; text-align:right; }
-    .ts { font-size:12px; color:#444; opacity:.8; margin-top:4px; }
-    .composer { max-width: 640px; margin: 0 auto; }
-    textarea {
-      width:100%; max-width:640px; height:110px; padding:14px; font-size:16px;
-      border:1px solid #ccc; border-radius:10px; box-sizing:border-box; margin-bottom:10px;
-    }
-    button {
-      background-color: #a6947c; color:#fff; border:none; padding:12px 22px;
-      font-size:16px; border-radius:10px; cursor:pointer;
-    }
-    .back { margin-top:16px; font-size:14px; display:inline-block; }
+    body{font-family:Arial,sans-serif;background:#fefaf6;color:#111;margin:0;padding:30px 16px;text-align:center}
+    .logo{width:300px;margin-bottom:10px}
+    h1{font-size:24px;margin:6px 0 16px}
+    .meta{color:#555;font-size:14px;margin-bottom:16px}
+    .thread{max-width:640px;margin:0 auto 16px;padding:16px;background:#fff9f0;border-radius:16px;box-shadow:0 8px 20px rgba(0,0,0,.05);text-align:left;min-height:180px}
+    .msg{padding:10px 12px;border-radius:10px;margin-bottom:10px}
+    .from-finder{background:#f0e6d5}
+    .from-owner{background:#d3b277;color:#fff;text-align:right}
+    .ts{font-size:12px;color:#444;opacity:.8;margin-top:4px}
+    .composer{max-width:640px;margin:0 auto}
+    textarea{width:100%;max-width:640px;height:110px;padding:14px;font-size:16px;border:1px solid #ccc;border-radius:10px;box-sizing:border-box;margin-bottom:10px}
+    button{background:#a6947c;color:#fff;border:none;padding:12px 22px;font-size:16px;border-radius:10px;cursor:pointer}
+    .back{margin-top:16px;font-size:14px;display:inline-block}
   </style>
 </head>
 <body>
@@ -52,11 +35,11 @@
   <a class="back" href="profilo.html">← Torna al profilo</a>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore, collection, query, where, orderBy, getDocs,
-      addDoc, serverTimestamp, writeBatch, doc
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+      getFirestore, collection, query, where, orderBy, onSnapshot,
+      addDoc, serverTimestamp, getDocs, updateDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
@@ -68,92 +51,128 @@
       measurementId: "G-6565LXTZW7"
     };
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db  = getFirestore(app);
 
     const params = new URLSearchParams(location.search);
-    const codice = (params.get("code") || "").trim();
-    const email = localStorage.getItem("email");
+    const codice = (params.get("code") || params.get("codice") || "").trim();
+    const email  = localStorage.getItem("email") || "";
 
-    const metaEl = document.getElementById("meta");
+    const metaEl   = document.getElementById("meta");
     const threadEl = document.getElementById("thread");
-    const replyEl = document.getElementById("reply");
-    const sendBtn = document.getElementById("sendBtn");
+    const replyEl  = document.getElementById("reply");
+    const sendBtn  = document.getElementById("sendBtn");
 
     if (!codice || !email) {
       threadEl.textContent = "Dati mancanti.";
       sendBtn.disabled = true;
     } else {
       metaEl.textContent = `QR: ${codice}`;
-      await loadThread();
+      startThread();
     }
 
-    async function loadThread() {
-      // prendi tutto il thread per questo proprietario e questo codice
-      const msgRef = collection(db, "messaggi");
-      const q = query(
-        msgRef,
-        where("email", "==", email),
-        where("codice", "==", codice),
-        orderBy("data", "asc")
+    // === CHAT REALTIME (schema nuovo: toEmail/dir/letto/ts) ===
+    function startThread(){
+      // tutti i messaggi per questo QR destinati a questo proprietario
+      const qThread = query(
+        collection(db,"messaggi"),
+        where("codice","==", codice),
+        where("toEmail","==", email),
+        orderBy("ts","asc")
       );
-      const snap = await getDocs(q);
 
-      // segna non letti -> letti in un colpo
-      const batch = writeBatch(db);
-      snap.forEach(d => {
-        const m = d.data();
-        if (m.read === false) {
-          batch.update(doc(db, "messaggi", d.id), { read: true });
+      onSnapshot(qThread, async (snap)=>{
+        // se non arriva nulla, prova in retro-compatibilità (schema vecchio)
+        if (snap.empty) {
+          renderFallback(); // NON bloccare, mostra comunque eventuali messaggi vecchi
+        } else {
+          await markIncomingAsRead(); // segna letti i non letti
+          renderMessages(snap.docs.map(d=>d.data()));
         }
       });
-      if (!snap.empty) await batch.commit();
+    }
 
-      // render
-      if (snap.empty) {
+    // Marca come letti tutti i messaggi IN non letti (per far sparire il badge)
+    async function markIncomingAsRead(){
+      const qUnread = query(
+        collection(db,"messaggi"),
+        where("codice","==", codice),
+        where("toEmail","==", email),
+        where("dir","==","in"),
+        where("letto","==", false)
+      );
+      const s = await getDocs(qUnread);
+      await Promise.allSettled(s.docs.map(d => updateDoc(d.ref, { letto: true })));
+    }
+
+    // Invio risposta (schema nuovo)
+    sendBtn.addEventListener("click", async ()=>{
+      const testo = (replyEl.value || "").trim();
+      if (!testo) return;
+      await addDoc(collection(db,"messaggi"), {
+        codice,
+        toEmail: email,           // thread = (codice + proprietario)
+        fromEmail: email,         // opzionale
+        testo,
+        dir: "out",               // messaggio in uscita dal proprietario
+        letto: true,              // i tuoi messaggi sono già "letti"
+        ts: serverTimestamp()
+      });
+      replyEl.value = "";
+    });
+
+    // Render lista messaggi (schema nuovo)
+    function renderMessages(list){
+      if (!list.length) {
         threadEl.textContent = "Nessun messaggio ancora.";
         return;
       }
       threadEl.innerHTML = "";
-      snap.forEach(d => {
-        const m = d.data();
+      list.forEach(m=>{
         const div = document.createElement("div");
-        const fromOwner = m.from === "owner";
+        const fromOwner = m.dir === "out"; // in = finder → sinistra, out = owner → destra
         div.className = "msg " + (fromOwner ? "from-owner" : "from-finder");
-        const when = m.data?.toDate ? m.data.toDate() : (m.data && m.data.seconds ? new Date(m.data.seconds*1000) : null);
-        const ts = when ? when.toLocaleString() : "";
-        div.innerHTML = `
-          <div>${escapeHtml(m.testo || "")}</div>
-          <div class="ts">${ts}</div>
-        `;
+        const when = m.ts?.toDate ? m.ts.toDate().toLocaleString() : "";
+        div.innerHTML = `<div>${escapeHtml(m.testo || "")}</div>${when?`<div class="ts">${when}</div>`:""}`;
         threadEl.appendChild(div);
       });
+      threadEl.scrollTop = threadEl.scrollHeight;
     }
 
-    sendBtn.addEventListener("click", inviaRisposta);
-
-    async function inviaRisposta() {
-      const testo = (replyEl.value || "").trim();
-      if (!testo) return;
-      try {
-        await addDoc(collection(db, "messaggi"), {
-          email, // proprietario
-          codice, // questo QR
-          testo,
-          from: "owner", // distinguo nel thread
-          read: true, // per il proprietario è già letto
-          data: serverTimestamp()
-        });
-        replyEl.value = "";
-        await loadThread(); // refresh lista
-      } catch (e) {
-        alert("Errore invio risposta");
+    // === FALLBACK per vecchi documenti (email/from/read/data) ===
+    async function renderFallback(){
+      try{
+        const qOld = query(
+          collection(db,"messaggi"),
+          where("email","==", email),
+          where("codice","==", codice),
+          orderBy("data","asc")
+        );
+        const s = await getDocs(qOld);
+        if (s.empty){
+          threadEl.textContent = "Nessun messaggio ancora.";
+          return;
+        }
+        // segna come letti (vecchio schema)
+        await Promise.allSettled(
+          s.docs.filter(d => d.data().read === false)
+                .map(d => updateDoc(d.ref, { read: true }))
+        );
+        // render
+        const list = s.docs.map(d => d.data()).map(m => ({
+          testo: m.testo,
+          dir: (m.from === "owner" ? "out" : "in"),
+          ts: m.data
+        }));
+        renderMessages(list);
+      }catch(e){
+        threadEl.textContent = "Errore nel caricamento.";
         console.error(e);
       }
     }
 
     // utilità semplice anti-HTML injection
     function escapeHtml(s){
-      return s.replace(/[&<>"']/g, c => (
+      return String(s).replace(/[&<>"']/g, c => (
         { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]
       ));
     }
