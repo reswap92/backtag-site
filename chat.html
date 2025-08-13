@@ -101,17 +101,15 @@
 
     let emailDestinatario = null; // proprietario del QR
 
-    // Helper: promisify geoloc con timeout
+    // Helper: geolocalizzazione con timeout
     function getPositionWithTimeout(timeoutMs = 8000) {
-      return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          return resolve(null); // niente GPS disponibile
-        }
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
         let done = false;
         const timer = setTimeout(() => {
           if (!done) {
             done = true;
-            resolve(null); // timeout: prosegui senza GPS
+            resolve(null);
           }
         }, timeoutMs);
 
@@ -130,7 +128,7 @@
             if (done) return;
             done = true;
             clearTimeout(timer);
-            resolve(null); // negato o errore: prosegui senza GPS
+            resolve(null);
           },
           { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs }
         );
@@ -154,7 +152,7 @@
         form.style.display = "block";
         errore.textContent = "";
 
-        // Log SCANSIONE (tracciamento base + GPS se disponibile)
+        // Log SCANSIONE
         try {
           const gps = await getPositionWithTimeout(8000);
           await addDoc(collection(db, "scansioni"), {
@@ -175,7 +173,7 @@
       }
     }
 
-    // ESPONI la funzione sul window per l'onclick del bottone
+    // Invio messaggio con schema NUOVO
     window.inviaMessaggio = async function () {
       const testo = (msgEl.value || "").trim();
       if (!testo) {
@@ -188,14 +186,15 @@
       }
 
       try {
-       await addDoc(collection(db, "messaggi"), {
-  email: emailDestinatario, // proprietario
-  codice: codiceQR, // codice del QR
-  testo,
-  from: "finder", // chi scrive è il “trovate”
-  letto: false, // <— IMPORTANTE per il badge
-  data: serverTimestamp()
-});
+        await addDoc(collection(db, "messaggi"), {
+          codice: codiceQR,
+          toEmail: emailDestinatario, // destinatario (proprietario)
+          fromEmail: null,            // trovante anonimo
+          testo,
+          dir: "in",                  // verso il proprietario
+          letto: false,               // per il badge
+          ts: serverTimestamp()
+        });
         alert("Messaggio inviato con successo!");
         window.location.href = "index.html";
       } catch (e) {
