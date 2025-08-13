@@ -1,105 +1,31 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Accedi al tuo BackTag</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f0e6;
-      text-align: center;
-      padding: 40px;
-      margin: 0;
-    }
-    .logo {
-      width: 400px;
-      margin-bottom: 20px;
-    }
-    h1 {
-      font-size: 36px;
-      font-weight: bold;
-    }
-    h2 {
-      font-size: 20px;
-      margin-bottom: 30px;
-    }
-    input[type="email"] {
-      width: 100%;
-      max-width: 400px;
-      padding: 15px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-    button {
-      background-color: black;
-      color: white;
-      font-weight: bold;
-      padding: 15px 40px;
-      font-size: 18px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-    .text-bottom {
-      margin-top: 30px;
-      font-size: 16px;
-    }
-    .text-bottom a {
-      font-weight: bold;
-      color: black;
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
-  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
-  <h1>Accedi al tuo <br>BackTag</h1>
-  <h2>Inserisci il tuo indirizzo email <br>per accedere</h2>
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  <!-- CAMPO EMAIL -->
-  <input type="email" id="email" placeholder="Indirizzo email" />
-  <br>
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+    authDomain: "backtag-16de3.firebaseapp.com",
+    projectId: "backtag-16de3",
+    storageBucket: "backtag-16de3.appspot.com",
+    messagingSenderId: "415455463905",
+    appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+    measurementId: "G-6565LXTZW7"
+  };
 
-  <!-- PULSANTE -->
-  <button onclick="inviaOTP()">Continua</button>
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-  <div class="text-bottom">
-    Nessun account? <a href="#">Registrati</a>
-  </div>
-
-  <!-- SCRIPT EMAILJS -->
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-  <script>
-    (function(){
-      emailjs.init("B7ss6UqQDdrNt11Af"); // Tua Public Key
-    })();
-
-    function inviaOTP() {
-      const emailUtente = document.getElementById("email").value.trim();
-      if (!emailUtente) {
-        alert("Per favore inserisci la tua email");
-        return;
-      }
-
-      const codiceOTP = Math.floor(100000 + Math.random() * 900000); // OTP 6 cifre
-      localStorage.setItem("otp", codiceOTP);
-      localStorage.setItem("email-temp", emailUtente); // salva email temporanea
-
-      const templateParams = {
-        to_email: emailUtente,
-        passcode: codiceOTP
-      };
-
-      emailjs.send("service_jjllcmg", "template_5v5zg37", templateParams)
-        .then(function(response) {
-          window.location.href = "verifica.html";
-        }, function(error) {
-          alert("Errore invio email: " + JSON.stringify(error));
-        });
+  window.__creaProfiloUtente = async function(email) {
+    const ref = doc(db, "users", email);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        baseSlots: 6,
+        extraSlots: 0,
+        createdAt: Date.now()
+      });
+      console.log("Creato profilo Firestore per", email);
     }
-  </script>
-</body>
-</html>
+  };
+</script>
