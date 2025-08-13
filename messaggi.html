@@ -23,7 +23,7 @@
 <body>
   <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
   <h1>Messaggi</h1>
-  <div class="meta" id="meta"></div>
+  <div class="meta" id="meta">Caricamento…</div>
 
   <div class="thread" id="thread">Caricamento…</div>
 
@@ -55,48 +55,75 @@
 
     const params = new URLSearchParams(location.search);
     const codice = (params.get("code") || params.get("codice") || "").trim();
-    const email  = localStorage.getItem("email") || "";
 
     const metaEl   = document.getElementById("meta");
     const threadEl = document.getElementById("thread");
     const replyEl  = document.getElementById("reply");
     const sendBtn  = document.getElementById("sendBtn");
 
-    if (!codice || !email) {
-      threadEl.textContent = "Dati mancanti.";
+    if (!codice) {
+      threadEl.textContent = "Dati mancanti (code).";
       sendBtn.disabled = true;
     } else {
       metaEl.textContent = `QR: ${codice}`;
-      startThread();
+      start();
     }
 
-    // === CHAT REALTIME (schema nuovo: toEmail/dir/letto/ts) ===
-    function startThread(){
-      // tutti i messaggi per questo QR destinati a questo proprietario
+    // 1) Ricava l'email proprietario dal QR per evitare mismatch di maiuscole/minuscole
+    async function getOwnerEmailFromCode(code){
+      const s = await getDocs(query(collection(db,"qrcodes"), where("code","==", code)));
+      if (s.empty) return null;
+      return s.docs[0].data().email || null;
+    }
+
+    async function start(){
+      const ownerEmail = await getOwnerEmailFromCode(codice);
+      if (!ownerEmail){
+        threadEl.textContent = "QR non riconosciuto.";
+        sendBtn.disabled = true;
+        return;
+      }
+
+      // 2) Stream realtime dei messaggi del thread (schema nuovo)
       const qThread = query(
         collection(db,"messaggi"),
         where("codice","==", codice),
-        where("toEmail","==", email),
+        where("toEmail","==", ownerEmail),
         orderBy("ts","asc")
       );
 
       onSnapshot(qThread, async (snap)=>{
-        // se non arriva nulla, prova in retro-compatibilità (schema vecchio)
         if (snap.empty) {
-          renderFallback(); // NON bloccare, mostra comunque eventuali messaggi vecchi
+          threadEl.textContent = "Nessun messaggio ancora.";
         } else {
-          await markIncomingAsRead(); // segna letti i non letti
+          await markIncomingAsRead(codice, ownerEmail);
           renderMessages(snap.docs.map(d=>d.data()));
         }
       });
+
+      // 3) Invio risposta del proprietario
+      sendBtn.addEventListener("click", async ()=>{
+        const testo = (replyEl.value || "").trim();
+        if (!testo) return;
+        await addDoc(collection(db,"messaggi"), {
+          codice,
+          toEmail: ownerEmail,     // thread identificato da codice + proprietario
+          fromEmail: ownerEmail,   // opzionale
+          testo,
+          dir: "out",
+          letto: true,
+          ts: serverTimestamp()
+        });
+        replyEl.value = "";
+      });
     }
 
-    // Marca come letti tutti i messaggi IN non letti (per far sparire il badge)
-    async function markIncomingAsRead(){
+    // Segna come letti i messaggi IN non letti (per togliere il badge)
+    async function markIncomingAsRead(code, ownerEmail){
       const qUnread = query(
         collection(db,"messaggi"),
-        where("codice","==", codice),
-        where("toEmail","==", email),
+        where("codice","==", code),
+        where("toEmail","==", ownerEmail),
         where("dir","==","in"),
         where("letto","==", false)
       );
@@ -104,23 +131,6 @@
       await Promise.allSettled(s.docs.map(d => updateDoc(d.ref, { letto: true })));
     }
 
-    // Invio risposta (schema nuovo)
-    sendBtn.addEventListener("click", async ()=>{
-      const testo = (replyEl.value || "").trim();
-      if (!testo) return;
-      await addDoc(collection(db,"messaggi"), {
-        codice,
-        toEmail: email,           // thread = (codice + proprietario)
-        fromEmail: email,         // opzionale
-        testo,
-        dir: "out",               // messaggio in uscita dal proprietario
-        letto: true,              // i tuoi messaggi sono già "letti"
-        ts: serverTimestamp()
-      });
-      replyEl.value = "";
-    });
-
-    // Render lista messaggi (schema nuovo)
     function renderMessages(list){
       if (!list.length) {
         threadEl.textContent = "Nessun messaggio ancora.";
@@ -129,7 +139,7 @@
       threadEl.innerHTML = "";
       list.forEach(m=>{
         const div = document.createElement("div");
-        const fromOwner = m.dir === "out"; // in = finder → sinistra, out = owner → destra
+        const fromOwner = m.dir === "out";
         div.className = "msg " + (fromOwner ? "from-owner" : "from-finder");
         const when = m.ts?.toDate ? m.ts.toDate().toLocaleString() : "";
         div.innerHTML = `<div>${escapeHtml(m.testo || "")}</div>${when?`<div class="ts">${when}</div>`:""}`;
@@ -138,39 +148,6 @@
       threadEl.scrollTop = threadEl.scrollHeight;
     }
 
-    // === FALLBACK per vecchi documenti (email/from/read/data) ===
-    async function renderFallback(){
-      try{
-        const qOld = query(
-          collection(db,"messaggi"),
-          where("email","==", email),
-          where("codice","==", codice),
-          orderBy("data","asc")
-        );
-        const s = await getDocs(qOld);
-        if (s.empty){
-          threadEl.textContent = "Nessun messaggio ancora.";
-          return;
-        }
-        // segna come letti (vecchio schema)
-        await Promise.allSettled(
-          s.docs.filter(d => d.data().read === false)
-                .map(d => updateDoc(d.ref, { read: true }))
-        );
-        // render
-        const list = s.docs.map(d => d.data()).map(m => ({
-          testo: m.testo,
-          dir: (m.from === "owner" ? "out" : "in"),
-          ts: m.data
-        }));
-        renderMessages(list);
-      }catch(e){
-        threadEl.textContent = "Errore nel caricamento.";
-        console.error(e);
-      }
-    }
-
-    // utilità semplice anti-HTML injection
     function escapeHtml(s){
       return String(s).replace(/[&<>"']/g, c => (
         { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]
