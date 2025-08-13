@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BackTag — Contatta il proprietario</title>
+<style>
+  body{font-family:Arial,sans-serif;background:#fefaf6;margin:0;padding:24px}
+  .card{max-width:560px;margin:0 auto;background:#fff9f0;border-radius:16px;padding:20px;border:1px solid #e7dbc9}
+  h1{margin:0 0 8px;font-size:22px}
+  label{display:block;margin:12px 0 6px}
+  textarea,input{width:100%;padding:12px;border:1px solid #d8c9ad;border-radius:10px;background:#fff}
+  button{margin-top:14px;background:#141414;color:#fff;border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer}
+  .ok{margin-top:12px;color:#0b7f3f;font-weight:700;display:none}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Hai trovato questo oggetto?</h1>
+    <p>Scrivi un messaggio al proprietario (resterai anonimo se vuoi).</p>
+
+    <label>Il tuo nome (opzionale)</label>
+    <input id="nome" placeholder="Es. Marco"/>
+
+    <label>Contatto per risposta (opzionale)</label>
+    <input id="contatto" placeholder="Email o telefono"/>
+
+    <label>Messaggio</label>
+    <textarea id="testo" rows="4" placeholder="Ciao, ho trovato il tuo oggetto..."></textarea>
+
+    <button id="inviaBtn">Invia</button>
+    <div id="ok" class="ok">✅ Messaggio inviato! Ti risponderà qui o al contatto indicato.</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey:"AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain:"backtag-16de3.firebaseapp.com",
+      projectId:"backtag-16de3",
+      storageBucket:"backtag-16de3.appspot.com",
+      messagingSenderId:"415455463905",
+      appId:"1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId:"G-6565LXTZW7"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    // prendiamo codice dal link: ?code=XYZ
+    const params = new URLSearchParams(location.search);
+    const codice = params.get("code") || params.get("codice");
+    if(!codice){ alert("Codice mancante."); }
+
+    // trova l'email del proprietario dal QR
+    async function getOwnerEmailFromCode(code){
+      const q = query(collection(db,"qrcodes"), where("code","==", code));
+      const snap = await getDocs(q);
+      if(snap.empty) return null;
+      return snap.docs[0].data().email || null;
+    }
+
+    document.getElementById("inviaBtn").addEventListener("click", async ()=>{
+      const testo = document.getElementById("testo").value.trim();
+      if(!testo){ alert("Scrivi un messaggio."); return; }
+
+      const toEmail = await getOwnerEmailFromCode(codice);
+      if(!toEmail){ alert("QR non riconosciuto."); return; }
+
+      await addDoc(collection(db,"messaggi"), {
+        codice, toEmail,
+        testo,
+        nome: document.getElementById("nome").value.trim() || null,
+        contatto: document.getElementById("contatto").value.trim() || null,
+        dir: "in",           // in = arriva al proprietario
+        letto: false,        // non letto → farà comparire il badge
+        ts: serverTimestamp()
+      });
+
+      document.getElementById("ok").style.display = "block";
+      document.getElementById("testo").value = "";
+    });
+  </script>
+</body>
+</html>
