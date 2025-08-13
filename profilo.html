@@ -67,7 +67,7 @@
       border-radius: 999px; font-size: 11px; line-height: 1;
       padding: 4px 6px; min-width: 18px; text-align: center; font-weight: bold;
       box-shadow: 0 0 0 2px #fff9f0;
-      cursor: pointer;                /* <-- adesso è cliccabile */
+      cursor: pointer;
     }
   </style>
 
@@ -127,35 +127,28 @@
           badge.className = "badge-unread";
           badge.title = "Nuovi messaggi";
           badge.textContent = snap.size > 9 ? "9+" : String(snap.size);
-          // CLICK: apre messaggi.html per quel codice
           badge.onclick = (e) => {
-            e.stopPropagation(); // evita che clicchi lo slot sotto
+            e.stopPropagation();
             location.href = `messaggi.html?code=${encodeURIComponent(qrCode)}`;
           };
           slotEl.appendChild(badge);
         }
       } catch (err) {
-        console.error("[Profilo] Errore query messaggi (forse serve indice composto):", err);
+        console.error("[Profilo] Errore query messaggi:", err);
       }
     }
 
     async function caricaQR() {
       if (!email) return;
-
-      // reset iniziale
       slotElements.forEach((el, i) => renderEmptySlot(el, i));
-
-      // carica QR dell'utente
       const qrRef = collection(db, "qrcodes");
       const q     = query(qrRef, where("email","==", email));
       const snap  = await getDocs(q);
-
       snap.forEach(d => {
         const data  = d.data();
         const index = Number(data.slotIndex);
         const slot  = slotElements[index];
         if (!slot) return;
-
         renderFilledSlot(slot, index, data);
         addUnreadBadgeIfAny(slot, data.code);
       });
@@ -181,10 +174,9 @@
     </div>
 
     <div class="cta">
-     <button onclick="window.location.href='slot-extra.html'">
-  Attiva ora
-</button>
-
+      <button onclick="window.location.href='slot-extra.html'">
+        Attiva ora — €0,99
+      </button>
     </div>
   </div>
 </body>
