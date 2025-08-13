@@ -74,7 +74,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
-      getFirestore, collection, query, where, getDocs
+      getFirestore, collection, query, where, getDocs, doc, getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -87,11 +87,11 @@
       measurementId: "G-6565LXTZW7"
     };
 
-    const app = initializeApp(firebaseConfig);
+    const app  = initializeApp(firebaseConfig);
     const db   = getFirestore(app);
 
-    const email        = localStorage.getItem("email");
-    const slotElements = document.querySelectorAll(".slot");
+    const BASE_SLOTS = 6;
+    const email = localStorage.getItem("email");
 
     function renderEmptySlot(slotEl, index) {
       slotEl.style.border = "2px dashed #d4c6aa";
@@ -121,7 +121,6 @@
         const msgRef = collection(db, "messaggi");
         const qMsg   = query(msgRef, where("codice","==", qrCode), where("letto","==", false));
         const snap   = await getDocs(qMsg);
-
         if (snap.size > 0) {
           const badge = document.createElement("div");
           badge.className = "badge-unread";
@@ -138,12 +137,46 @@
       }
     }
 
+    async function getExtraSlots(email){
+      try{
+        const uRef = doc(db, "users", email);
+        const uSnap = await getDoc(uRef);
+        if (!uSnap.exists()) return 0;
+        const data = uSnap.data();
+        return Number(data.extraSlots || 0);
+      }catch(e){
+        console.error("Errore lettura extraSlots:", e);
+        return 0;
+      }
+    }
+
+    async function buildGrid(totalSlots){
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+      for (let i = 0; i < totalSlots; i++){
+        const el = document.createElement("div");
+        el.className = "slot";
+        renderEmptySlot(el, i);
+        grid.appendChild(el);
+      }
+      return grid.querySelectorAll(".slot");
+    }
+
     async function caricaQR() {
       if (!email) return;
-      slotElements.forEach((el, i) => renderEmptySlot(el, i));
+
+      // 1) leggi quanti extraSlots ha l'utente
+      const extra = await getExtraSlots(email);
+      const total = BASE_SLOTS + Math.max(0, extra);
+
+      // 2) costruisci la griglia dinamicamente
+      const slotElements = await buildGrid(total);
+
+      // 3) riempi gli slot con i QR esistenti
       const qrRef = collection(db, "qrcodes");
       const q     = query(qrRef, where("email","==", email));
       const snap  = await getDocs(q);
+
       snap.forEach(d => {
         const data  = d.data();
         const index = Number(data.slotIndex);
@@ -164,14 +197,8 @@
     <h1>Profilo</h1>
     <h3>QR attivi</h3>
 
-    <div class="qr-grid">
-      <div class="slot" onclick="location.href='attiva.html?slot=0'"><span>+</span></div>
-      <div class="slot" onclick="location.href='attiva.html?slot=1'"><span>+</span></div>
-      <div class="slot" onclick="location.href='attiva.html?slot=2'"><span>+</span></div>
-      <div class="slot" onclick="location.href='attiva.html?slot=3'"><span>+</span></div>
-      <div class="slot" onclick="location.href='attiva.html?slot=4'"><span>+</span></div>
-      <div class="slot" onclick="location.href='attiva.html?slot=5'"><span>+</span></div>
-    </div>
+    <!-- griglia dinamica -->
+    <div id="grid" class="qr-grid"></div>
 
     <div class="cta">
       <button onclick="window.location.href='slot-extra.html'">
