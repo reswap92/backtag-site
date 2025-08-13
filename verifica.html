@@ -79,11 +79,28 @@
     <button class="confirm" onclick="verificaOTP()">Conferma</button>
   </div>
 
-  <script>
-    function verificaOTP() {
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.appspot.com",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    window.verificaOTP = async function() {
       const otpInserito = document.getElementById("otp-input").value.trim();
-      const otpSalvato = localStorage.getItem("otp");
-      const emailTemp = localStorage.getItem("email-temp");
+      const otpSalvato  = localStorage.getItem("otp");
+      const emailTemp   = localStorage.getItem("email-temp");
 
       if (!otpInserito) {
         alert("Inserisci il codice OTP.");
@@ -92,7 +109,23 @@
 
       if (otpInserito === otpSalvato) {
         localStorage.removeItem("otp");
-        localStorage.setItem("email", emailTemp); // Salva email definitiva
+        localStorage.setItem("email", emailTemp);
+
+        // 🔹 CREA IL DOCUMENTO UTENTE SE NON ESISTE
+        try {
+          const ref = doc(db, "users", emailTemp);
+          const snap = await getDoc(ref);
+          if (!snap.exists()) {
+            await setDoc(ref, {
+              baseSlots: 6,
+              extraSlots: 0,
+              createdAt: Date.now()
+            });
+          }
+        } catch (err) {
+          console.error("Errore creazione utente:", err);
+        }
+
         window.location.href = "profilo.html";
       } else {
         alert("Il codice inserito non è corretto. Riprova.");
