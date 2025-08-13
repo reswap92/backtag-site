@@ -85,38 +85,54 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Normalizza: toglie spazi e porta in maiuscolo (BT-0001 == bt-0001)
+    function normalizeCode(v){
+      return (v || "").trim().replace(/\s+/g,"").toUpperCase();
+    }
+
     async function cercaCodice() {
       const input = document.getElementById("codice");
       const risultato = document.getElementById("risultato");
-      const codiceInserito = (input.value || "").trim();
+      const btn = document.getElementById("btnTrova");
 
+      let codiceInserito = normalizeCode(input.value);
       if (!codiceInserito) {
         alert("Inserisci un codice univoco");
         return;
       }
 
-      // Query esatta sul campo 'code'
-      const qrRef = collection(db, "qrcodes");
-      const q = query(qrRef, where("code", "==", codiceInserito));
-      const snapshot = await getDocs(q);
+      try {
+        btn.disabled = true;
+        const old = btn.textContent;
+        btn.textContent = "Caricamento…";
 
-      if (snapshot.empty) {
-        risultato.innerHTML = "<p>Codice non trovato.</p>";
-      } else {
-        // Salvo anche localmente per fallback, ma **passo in URL** il codice
-        localStorage.setItem("lastCode", codiceInserito);
-        const encoded = encodeURIComponent(codiceInserito);
-        risultato.innerHTML = `
-          <div class="chat-icon">💬</div>
-          <button onclick="location.href='chat.html?code=${encoded}'">Apri chat anonima</button>
-        `;
+        // Query esatta sul campo 'code'
+        const qrRef = collection(db, "qrcodes");
+        const q = query(qrRef, where("code", "==", codiceInserito));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+          risultato.innerHTML = "<p>Codice non trovato.</p>";
+        } else {
+          localStorage.setItem("lastCode", codiceInserito);
+          const encoded = encodeURIComponent(codiceInserito);
+          // vai alla chat pubblica per il trovate
+          window.location.href = `active.html?code=${encoded}`;
+        }
+
+        btn.textContent = old;
+        btn.disabled = false;
+      } catch (e) {
+        console.error(e);
+        alert("Errore, riprova.");
+        btn.disabled = false;
       }
     }
 
     // Rende la funzione disponibile al bottone
     window.cercaCodice = cercaCodice;
 
-    // Invio da tastiera
+    // Enter per inviare + deep-link da ?code
     window.addEventListener("DOMContentLoaded", () => {
       const input = document.getElementById("codice");
       input.addEventListener("keydown", (e) => {
@@ -125,6 +141,14 @@
           cercaCodice();
         }
       });
+
+      // Se arriva già un code nell'URL, vai diretto alla chat
+      const p = new URLSearchParams(location.search);
+      const codeParam = normalizeCode(p.get("code") || p.get("codice"));
+      if (codeParam) {
+        localStorage.setItem("lastCode", codeParam);
+        location.replace(`active.html?code=${encodeURIComponent(codeParam)}`);
+      }
     });
   </script>
 </head>
@@ -134,7 +158,7 @@
 
   <input type="text" id="codice" placeholder="Es. BT-0001" />
   <br>
-  <button onclick="cercaCodice()">Trova</button>
+  <button id="btnTrova" onclick="cercaCodice()">Trova</button>
 
   <div id="risultato" class="chat-button"></div>
 
