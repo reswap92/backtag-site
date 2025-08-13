@@ -18,14 +18,16 @@
     textarea{width:100%;max-width:640px;height:110px;padding:14px;font-size:16px;border:1px solid #ccc;border-radius:10px;box-sizing:border-box;margin-bottom:10px}
     button{background:#a6947c;color:#fff;border:none;padding:12px 22px;font-size:16px;border-radius:10px;cursor:pointer}
     .back{margin-top:16px;font-size:14px;display:inline-block}
+    .err{color:#a00;margin:10px 0}
   </style>
 </head>
 <body>
-  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
+  <img src="logo-backtag.png" alt="BackTag" class="logo" />
   <h1>Messaggi</h1>
   <div class="meta" id="meta">Caricamento…</div>
 
   <div class="thread" id="thread">Caricamento…</div>
+  <div id="err" class="err"></div>
 
   <div class="composer">
     <textarea id="reply" placeholder="Scrivi una risposta al trovate…"></textarea><br>
@@ -37,7 +39,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore, collection, query, where, orderBy, onSnapshot,
+      getFirestore, collection, query, where, onSnapshot,
       addDoc, serverTimestamp, getDocs, updateDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -51,17 +53,18 @@
       measurementId: "G-6565LXTZW7"
     };
     const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+    const db = getFirestore(app);
 
     const params = new URLSearchParams(location.search);
     const codice = (params.get("code") || params.get("codice") || "").trim();
 
-    const metaEl   = document.getElementById("meta");
+    const metaEl = document.getElementById("meta");
     const threadEl = document.getElementById("thread");
-    const replyEl  = document.getElementById("reply");
-    const sendBtn  = document.getElementById("sendBtn");
+    const replyEl = document.getElementById("reply");
+    const sendBtn = document.getElementById("sendBtn");
+    const errEl = document.getElementById("err");
 
-    if (!codice) {
+    if (!codice){
       threadEl.textContent = "Dati mancanti (code).";
       sendBtn.disabled = true;
     } else {
@@ -69,66 +72,73 @@
       start();
     }
 
-    // 1) Ricava l'email proprietario dal QR per evitare mismatch di maiuscole/minuscole
+    // Email del proprietario presa da qrcodes (evita mismatch/localStorage)
     async function getOwnerEmailFromCode(code){
       const s = await getDocs(query(collection(db,"qrcodes"), where("code","==", code)));
-      if (s.empty) return null;
-      return s.docs[0].data().email || null;
+      return s.empty ? null : (s.docs[0].data().email || null);
     }
 
     async function start(){
-      const ownerEmail = await getOwnerEmailFromCode(codice);
-      if (!ownerEmail){
-        threadEl.textContent = "QR non riconosciuto.";
-        sendBtn.disabled = true;
-        return;
-      }
-
-      // 2) Stream realtime dei messaggi del thread (schema nuovo)
-      const qThread = query(
-        collection(db,"messaggi"),
-        where("codice","==", codice),
-        where("toEmail","==", ownerEmail),
-        orderBy("ts","asc")
-      );
-
-      onSnapshot(qThread, async (snap)=>{
-        if (snap.empty) {
-          threadEl.textContent = "Nessun messaggio ancora.";
-        } else {
-          await markIncomingAsRead(codice, ownerEmail);
-          renderMessages(snap.docs.map(d=>d.data()));
+      try{
+        const ownerEmail = await getOwnerEmailFromCode(codice);
+        if (!ownerEmail){
+          threadEl.textContent = "QR non riconosciuto.";
+          sendBtn.disabled = true;
+          return;
         }
-      });
 
-      // 3) Invio risposta del proprietario
-      sendBtn.addEventListener("click", async ()=>{
-        const testo = (replyEl.value || "").trim();
-        if (!testo) return;
-        await addDoc(collection(db,"messaggi"), {
-          codice,
-          toEmail: ownerEmail,     // thread identificato da codice + proprietario
-          fromEmail: ownerEmail,   // opzionale
-          testo,
-          dir: "out",
-          letto: true,
-          ts: serverTimestamp()
+        // 1) Stream SOLO per codice (niente indici). Filtriamo lato client su toEmail.
+        const qByCode = query(collection(db,"messaggi"), where("codice","==", codice));
+        onSnapshot(qByCode, async (snap)=>{
+          const all = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+
+          // schema nuovo
+          const nuovi = all.filter(m => m.toEmail === ownerEmail);
+          // schema vecchio fallback
+          const legacy = all.filter(m => !m.toEmail && m.email === ownerEmail)
+                            .map(m => ({ testo:m.testo, dir:(m.from==="owner"?"out":"in"), letto:m.read, ts:m.data }));
+
+          // ordina per ts (se manca, resta in fondo)
+          const list = [...nuovi, ...legacy].sort((a,b)=>{
+            const ta = a.ts?.seconds || a.ts?.toDate?.().getTime()/1000 || 0;
+            const tb = b.ts?.seconds || b.ts?.toDate?.().getTime()/1000 || 0;
+            return ta - tb;
+          });
+
+          renderMessages(list);
+
+          // 2) marca letti gli IN non letti (solo schema nuovo)
+          const unread = snap.docs.filter(d=>{
+            const m = d.data();
+            return m.codice===codice && m.toEmail===ownerEmail && m.dir==="in" && m.letto===false;
+          });
+          if (unread.length) {
+            await Promise.allSettled(unread.map(d => updateDoc(d.ref, { letto:true })));
+          }
         });
-        replyEl.value = "";
-      });
-    }
 
-    // Segna come letti i messaggi IN non letti (per togliere il badge)
-    async function markIncomingAsRead(code, ownerEmail){
-      const qUnread = query(
-        collection(db,"messaggi"),
-        where("codice","==", code),
-        where("toEmail","==", ownerEmail),
-        where("dir","==","in"),
-        where("letto","==", false)
-      );
-      const s = await getDocs(qUnread);
-      await Promise.allSettled(s.docs.map(d => updateDoc(d.ref, { letto: true })));
+        // 3) invio risposta (schema nuovo)
+        sendBtn.onclick = async ()=>{
+          const testo = (replyEl.value || "").trim();
+          if (!testo) return;
+          try{
+            await addDoc(collection(db,"messaggi"), {
+              codice,
+              toEmail: ownerEmail,
+              fromEmail: ownerEmail,
+              testo,
+              dir: "out",
+              letto: true,
+              ts: serverTimestamp()
+            });
+            replyEl.value = "";
+          }catch(e){ errEl.textContent = "Errore invio."; console.error(e); }
+        };
+
+      }catch(err){
+        errEl.textContent = "Errore caricamento chat.";
+        console.error(err);
+      }
     }
 
     function renderMessages(list){
@@ -141,7 +151,8 @@
         const div = document.createElement("div");
         const fromOwner = m.dir === "out";
         div.className = "msg " + (fromOwner ? "from-owner" : "from-finder");
-        const when = m.ts?.toDate ? m.ts.toDate().toLocaleString() : "";
+        const when = m.ts?.toDate ? m.ts.toDate().toLocaleString()
+                   : (m.ts?.seconds ? new Date(m.ts.seconds*1000).toLocaleString() : "");
         div.innerHTML = `<div>${escapeHtml(m.testo || "")}</div>${when?`<div class="ts">${when}</div>`:""}`;
         threadEl.appendChild(div);
       });
