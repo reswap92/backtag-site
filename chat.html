@@ -5,49 +5,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Chat - BackTag</title>
   <style>
-    body{font-family:Arial,sans-serif;background:#fefaf6;color:#111;text-align:center;padding:40px;margin:0}
-    .logo{width:300px;margin-bottom:20px}
-    h1{font-size:28px;margin-bottom:10px}
-    p.subtitle{font-size:16px;margin-bottom:20px;color:#555}
-    .wrap{max-width:720px;margin:0 auto}
-    .thread{background:#fff9f0;border:1px solid #e7dbc9;border-radius:16px;padding:16px;text-align:left;min-height:220px}
-    .msg{padding:10px 12px;border-radius:10px;margin-bottom:10px;max-width:80%}
-    .from-finder{background:#f0e6d5}
-    .from-owner{background:#141414;color:#fff;margin-left:auto}
-    .ts{font-size:12px;opacity:.8;margin-top:4px}
-    .form{margin-top:16px}
-    textarea,input{width:100%;max-width:720px;padding:12px;font-size:16px;border:1px solid #ccc;border-radius:10px;box-sizing:border-box;margin-bottom:10px;background:#fff}
-    button{background:#a58c6b;color:#fff;padding:12px 22px;border:none;font-size:16px;border-radius:10px;cursor:pointer}
-    #errore{color:#a00;margin-top:12px;font-weight:700}
-    .hint{font-size:13px;opacity:.8;margin-top:6px}
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fefaf6;
+      color: #111;
+      text-align: center;
+      padding: 40px;
+      margin: 0;
+    }
+    .logo {
+      width: 300px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    p.subtitle {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: #555;
+    }
+    #thread {
+      max-width: 500px;
+      margin: 20px auto;
+      text-align: left;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 15px;
+      background: #fff;
+      height: 300px;
+      overflow-y: auto;
+    }
+    .msg {
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+    .from-finder {
+      background-color: #e3f2fd;
+    }
+    .from-owner {
+      background-color: #dcedc8;
+      text-align: right;
+    }
+    .ts {
+      font-size: 12px;
+      color: #777;
+      margin-top: 4px;
+    }
+    textarea {
+      width: 100%;
+      max-width: 500px;
+      height: 80px;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-top: 10px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #a58c6b;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #errore {
+      color: #a00;
+      margin-top: 20px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
-  <div class="wrap">
-    <h1>Hai trovato un oggetto?</h1>
-    <p class="subtitle">Scrivi al proprietario. Tieni aperta questa pagina per vedere le risposte in tempo reale.</p>
+  <h1>Hai trovato un oggetto?</h1>
+  <p class="subtitle">Invia e ricevi messaggi in forma completamente anonima.</p>
 
-    <!-- THREAD -->
-    <div class="thread" id="thread">Caricamento…</div>
-    <div id="errore"></div>
+  <div id="errore"></div>
+  <div id="thread">Caricamento conversazione...</div>
 
-    <!-- FORM -->
-    <div class="form">
-      <input id="nome" placeholder="Il tuo nome (opzionale)"/>
-      <input id="contatto" placeholder="Contatto per risposta (email o telefono, opzionale)"/>
-      <textarea id="messaggio" rows="3" placeholder="Scrivi il tuo messaggio qui..."></textarea><br>
-      <button id="inviaBtn">Invia messaggio</button>
-      <div class="hint">Suggerimento: lascia questa pagina aperta. Le risposte appariranno qui.</div>
-    </div>
+  <div id="formContainer" style="display: none;">
+    <textarea id="messaggio" placeholder="Scrivi il tuo messaggio qui..."></textarea><br>
+    <button onclick="inviaMessaggio()">Invia messaggio</button>
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
-      getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs,
+      addDoc,
+      onSnapshot,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+    // --- Firebase ---
     const firebaseConfig = {
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
       authDomain: "backtag-16de3.firebaseapp.com",
@@ -58,100 +119,104 @@
       measurementId: "G-6565LXTZW7"
     };
     const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+    const db = getFirestore(app);
 
+    const params = new URLSearchParams(window.location.search);
+    const codiceQR = params.get("code");
+
+    const errore = document.getElementById("errore");
+    const msgEl = document.getElementById("messaggio");
+    const form = document.getElementById("formContainer");
     const threadEl = document.getElementById("thread");
-    const erroreEl = document.getElementById("errore");
-    const nomeEl   = document.getElementById("nome");
-    const contEl   = document.getElementById("contatto");
-    const msgEl    = document.getElementById("messaggio");
-    const inviaBtn = document.getElementById("inviaBtn");
 
-    const params   = new URLSearchParams(location.search);
-    const codiceQR = (params.get("code") || "").trim();
-    let ownerEmail = null;
+    let emailDestinatario = null;
 
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, c => (
-        { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]
-      ));
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
     }
 
-    async function init(){
-      if (!codiceQR){
-        threadEl.textContent = "QR Code non valido o mancante.";
-        inviaBtn.disabled = true;
+    async function controllaCodice() {
+      if (!codiceQR) {
+        errore.textContent = "QR Code non valido o mancante.";
         return;
       }
 
-      // 1) Recupero email proprietario dal QR
-      const qrSnap = await getDocs(query(collection(db,"qrcodes"), where("code","==", codiceQR)));
-      if (qrSnap.empty){
-        threadEl.textContent = "QR Code non trovato o non ancora registrato.";
-        inviaBtn.disabled = true;
-        return;
-      }
-      ownerEmail = qrSnap.docs[0].data().email;
+      const qrcodesRef = collection(db, "qrcodes");
+      const q = query(qrcodesRef, where("code", "==", codiceQR));
+      const snapshot = await getDocs(q);
 
-      // 2) Listener realtime del thread (solo questo QR + proprietario)
-      const qByCode = query(collection(db,"messaggi"), where("codice","==", codiceQR));
-      onSnapshot(qByCode, (snap)=>{
-        const all = snap.docs.map(d => d.data());
-        // prendo i messaggi destinati a questo proprietario
-        const list = all
-          .filter(m => (m.toEmail && m.toEmail === ownerEmail) || (!m.toEmail && m.email === ownerEmail))
-          .map(m => m.toEmail ? m : ({ testo:m.testo, dir:(m.from==="owner"?"out":"in"), ts:m.data }))
-          .sort((a,b)=>{
-            const ta = a.ts?.seconds || a.ts?.toDate?.().getTime()/1000 || 0;
-            const tb = b.ts?.seconds || b.ts?.toDate?.().getTime()/1000 || 0;
-            return ta - tb;
+      if (!snapshot.empty) {
+        const data = snapshot.docs[0].data();
+        emailDestinatario = data.email;
+        form.style.display = "block";
+        errore.textContent = "";
+
+        // LISTENER MESSAGGI PER QUESTO CODICE (vedi anche risposte)
+        const qByCode = query(collection(db, "messaggi"), where("codice", "==", codiceQR));
+        onSnapshot(qByCode, (snap) => {
+          const list = snap.docs
+            .map(d => d.data())
+            .sort((a, b) => {
+              const ta = a.ts?.seconds || 0;
+              const tb = b.ts?.seconds || 0;
+              return ta - tb;
+            });
+
+          if (!list.length) {
+            threadEl.textContent = "Ancora nessun messaggio. Scrivi il primo!";
+            return;
+          }
+
+          threadEl.innerHTML = "";
+          list.forEach(m => {
+            const fromOwner = m.dir === "out";
+            const when = m.ts?.seconds ? new Date(m.ts.seconds * 1000).toLocaleString() : "";
+            const div = document.createElement("div");
+            div.className = "msg " + (fromOwner ? "from-owner" : "from-finder");
+            div.innerHTML = `<div>${escapeHtml(m.testo || "")}</div>${when ? `<div class="ts">${when}</div>` : ""}`;
+            threadEl.appendChild(div);
           });
-
-        if (!list.length){
-          threadEl.textContent = "Ancora nessun messaggio. Scrivi il primo!";
-          return;
-        }
-        threadEl.innerHTML = "";
-        list.forEach(m=>{
-          const div = document.createElement("div");
-          const fromOwner = m.dir === "out";
-          div.className = "msg " + (fromOwner ? "from-owner" : "from-finder");
-          const when = m.ts?.toDate ? m.ts.toDate().toLocaleString()
-                   : (m.ts?.seconds ? new Date(m.ts.seconds*1000).toLocaleString() : "");
-          div.innerHTML = `<div>${escapeHtml(m.testo || "")}</div>${when?`<div class="ts">${when}</div>`:""}`;
-          threadEl.appendChild(div);
+          threadEl.scrollTop = threadEl.scrollHeight;
         });
-        threadEl.scrollTop = threadEl.scrollHeight;
-      });
 
-      // 3) Invio messaggio (in → verso il proprietario)
-      inviaBtn.onclick = async ()=>{
-        const testo = (msgEl.value || "").trim();
-        const nome  = (nomeEl.value || "").trim();
-        const cont  = (contEl.value || "").trim();
-        if (!testo) { alert("Scrivi un messaggio prima di inviare."); return; }
-
-        try{
-          await addDoc(collection(db, "messaggi"), {
-            codice: codiceQR,
-            toEmail: ownerEmail,     // destinatario: proprietario
-            fromEmail: null,         // trovante anonimo
-            nome: nome || null,
-            contatto: cont || null,
-            testo,
-            dir: "in",
-            letto: false,
-            ts: serverTimestamp()
-          });
-          msgEl.value = "";
-        }catch(e){
-          console.error(e);
-          erroreEl.textContent = "Errore nell'invio del messaggio.";
-        }
-      };
+      } else {
+        errore.textContent = "QR Code non trovato o non ancora registrato.";
+        form.style.display = "none";
+      }
     }
 
-    init();
+    window.inviaMessaggio = async function () {
+      const testo = (msgEl.value || "").trim();
+      if (!testo) {
+        alert("Scrivi un messaggio prima di inviare.");
+        return;
+      }
+      if (!emailDestinatario || !codiceQR) {
+        alert("Errore: QR non valido.");
+        return;
+      }
+
+      try {
+        await addDoc(collection(db, "messaggi"), {
+          codice: codiceQR,
+          toEmail: emailDestinatario,
+          fromEmail: null,
+          testo,
+          dir: "in",
+          letto: false,
+          ts: serverTimestamp()
+        });
+        msgEl.value = "";
+      } catch (e) {
+        console.error("Errore invio:", e);
+        alert("Errore nell'invio del messaggio.");
+      }
+    };
+
+    window.addEventListener("DOMContentLoaded", controllaCodice);
   </script>
 </body>
 </html>
