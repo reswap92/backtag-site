@@ -13,48 +13,18 @@
       padding: 40px;
       margin: 0;
     }
-    .logo {
-      height: 300px;
-      margin-bottom: 20px;
-    }
-    .code-label {
-      font-size: 22px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    .qr-image {
-      margin: 20px 0;
-    }
-    .qr-image img {
-      width: 160px;
-      height: 160px;
-    }
+    .logo { height: 300px; margin-bottom: 20px; }
+    .code-label { font-size: 22px; font-weight: bold; margin-bottom: 10px; }
+    .qr-image { margin: 20px 0; }
+    .qr-image img { width: 160px; height: 160px; }
     .scansioni {
-      margin-top: 30px;
-      text-align: left;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-top: 30px; text-align: left; max-width: 600px;
+      margin-left: auto; margin-right: auto; background: #fff; padding: 20px;
+      border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    .scansioni h2 {
-      font-size: 20px;
-      margin-bottom: 15px;
-      text-align: center;
-    }
-    .scansioni ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    .scansioni li {
-      margin-bottom: 10px;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 8px;
-    }
+    .scansioni h2 { font-size: 20px; margin-bottom: 15px; text-align: center; }
+    .scansioni ul { list-style: none; padding: 0; margin: 0; }
+    .scansioni li { margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
     .muted { color:#555 }
     .warn { color:#a00; font-weight:bold; text-align:center; margin-top:8px }
   </style>
@@ -75,11 +45,9 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, query, where, onSnapshot
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // --- Firebase ---
+    // Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
       authDomain: "backtag-16de3.firebaseapp.com",
@@ -92,20 +60,32 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // --- DOM ---
+    // DOM
     const listaScansioni = document.getElementById("listaScansioni");
     const labelEl = document.getElementById("qrLabel");
-    const imgEl   = document.getElementById("qrImage");
+    const imgWrap = document.getElementById("qrImage");
     const errEl   = document.getElementById("err");
 
-    // --- Parametri ---
+    // Parametri
     const params = new URLSearchParams(window.location.search);
     const code = (params.get("code") || "").trim();
 
     labelEl.textContent = `Codice: ${code || "—"}`;
-    imgEl.innerHTML = code
-      ? `<img src="https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=${encodeURIComponent(code)}" alt="QR">`
-      : "";
+
+    // --- QR con fallback (Google -> qrserver) ---
+    imgWrap.innerHTML = "";
+    if (code) {
+      const img = document.createElement("img");
+      img.alt = "QR";
+      img.width = 160; img.height = 160;
+
+      const src1 = `https://chart.googleapis.com/chart?cht=qr&chs=160x160&chld=L|0&chl=${encodeURIComponent(code)}&v=1`;
+      const src2 = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(code)}`;
+
+      img.src = src1;
+      img.onerror = () => { img.onerror = null; img.src = src2; };
+      imgWrap.appendChild(img);
+    }
 
     if (!code) {
       listaScansioni.innerHTML = "<li>Nessun codice fornito nella URL (?code=...)</li>";
@@ -121,13 +101,11 @@
     }
 
     function caricaScansioniRealtime(codice){
-      // NIENTE orderBy: evitiamo l'indice. Ordiniamo lato client per time DESC.
       const qByCode = query(collection(db, "scansioni"), where("codice", "==", codice));
-
       onSnapshot(qByCode, (snap) => {
         const rows = snap.docs.map(d => d.data());
 
-        // ordina per time desc (supporta sia ts con toDate() sia {seconds})
+        // Ordino lato client per time desc
         rows.sort((a,b) => {
           const ta = (a.time?.toDate ? a.time.toDate().getTime() : (a.time?.seconds ? a.time.seconds*1000 : 0));
           const tb = (b.time?.toDate ? b.time.toDate().getTime() : (b.time?.seconds ? b.time.seconds*1000 : 0));
@@ -143,7 +121,6 @@
         rows.forEach(dati => {
           const data = fmtTs(dati.time) || "Data sconosciuta";
           const ua   = dati.userAgent || "Dispositivo sconosciuto";
-          // Nella tua chat salvi lat/lng/accuracy (non 'posizione')
           const pos  = (typeof dati.lat === "number" && typeof dati.lng === "number")
                         ? `Lat: ${dati.lat.toFixed(5)}, Lng: ${dati.lng.toFixed(5)}`
                         : "Posizione non disponibile";
