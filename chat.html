@@ -3,49 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chat - BackTag (debug)</title>
+  <title>Chat - BackTag (v9)</title>
   <style>
     body{font-family:Arial,sans-serif;background:#fefaf6;color:#111;text-align:center;padding:24px;margin:0}
     .logo{width:220px;margin:6px auto 10px;display:block}
-    .wrap{max-width:760px;margin:0 auto}
     h1{margin:8px 0 4px}
     .subtitle{margin:0 0 14px;color:#555}
-    #dbg{font:12px/1.3 monospace;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;max-width:760px;margin:8px auto;text-align:left;white-space:pre-wrap}
-    #thread{background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;min-height:220px;max-height:380px;overflow:auto;text-align:left}
+    #counter{font-size:18px;font-weight:700;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;max-width:760px;margin:8px auto}
+    #thread{background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;min-height:220px;max-height:380px;overflow:auto;text-align:left;max-width:760px;margin:8px auto}
     .msg{padding:8px 10px;border-radius:10px;margin:8px 0;max-width:80%}
     .from-finder{background:#f0e6d5}
     .from-owner{background:#141414;color:#fff;margin-left:auto}
     .ts{font-size:12px;opacity:.8;margin-top:4px}
     textarea{width:100%;max-width:760px;padding:12px;border:1px solid #ccc;border-radius:10px;box-sizing:border-box}
     button{background:#a58c6b;color:#fff;border:0;padding:10px 18px;border-radius:10px;cursor:pointer;margin-top:8px}
-    .row{max-width:760px;margin:14px auto}
-    #errore{color:#b00;margin:8px 0;font-weight:bold}
+    #err{color:#b00;margin:8px 0;font-weight:bold}
   </style>
 </head>
 <body>
   <img src="logo-backtag.png" alt="BackTag" class="logo"/>
+  <h1>Hai trovato un oggetto?</h1>
+  <p class="subtitle">Tieni aperta questa pagina: la risposta del proprietario compare qui in tempo reale.</p>
 
-  <div class="wrap">
-    <h1>Hai trovato un oggetto?</h1>
-    <p class="subtitle">Tieni aperta questa pagina: la risposta del proprietario compare qui in tempo reale.</p>
+  <div id="counter">docs letti: 0</div>
+  <div id="thread">Caricamento conversazione…</div>
+  <div id="err"></div>
 
-    <!-- pannello debug visibile -->
-    <div id="dbg">Debug...</div>
-
-    <!-- thread SEMPRE visibile -->
-    <div id="thread">Caricamento conversazione…</div>
-    <div id="errore"></div>
-
-    <div class="row">
-      <textarea id="messaggio" rows="3" placeholder="Scrivi il tuo messaggio qui…"></textarea><br>
-      <button id="btnInvia">Invia messaggio</button>
-    </div>
+  <div style="max-width:760px;margin:14px auto">
+    <textarea id="msg" rows="3" placeholder="Scrivi il tuo messaggio qui…"></textarea><br>
+    <button id="send">Invia messaggio</button>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot
+      getFirestore, collection, query, where, getDocs, addDoc,
+      serverTimestamp, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -60,51 +53,47 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    const params    = new URLSearchParams(location.search);
-    const codiceQR  = (params.get("code") || "").trim();
+    const params   = new URLSearchParams(location.search);
+    const codiceQR = (params.get("code") || "").trim();
 
-    const dbg   = document.getElementById("dbg");
-    const erro  = document.getElementById("errore");
-    const thread= document.getElementById("thread");
-    const msgEl = document.getElementById("messaggio");
-    const btn   = document.getElementById("btnInvia");
-
-    function log(s){ console.log("[chat]", s); dbg.textContent += "\\n" + s; }
+    const thread  = document.getElementById("thread");
+    const counter = document.getElementById("counter");
+    const errEl   = document.getElementById("err");
+    const msgEl   = document.getElementById("msg");
+    const btnSend = document.getElementById("send");
 
     function escapeHtml(s){
       return String(s).replace(/[&<>"']/g, c => (
-        { "&":"&amp;","<":"&lt;","~":"~",">":"&gt;",'"':"&quot;","'":"&#39;" }[c] || c
+        { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]
       ));
     }
 
+    // trova email proprietario dal QR (serve per associare il destinatario quando invii)
     async function getOwnerEmailFromCode(code){
       const s = await getDocs(query(collection(db,"qrcodes"), where("code","==", code)));
       return s.empty ? null : (s.docs[0].data().email || null);
     }
 
     async function start(){
-      dbg.textContent = "Debug avviato";
       if (!codiceQR){
-        erro.textContent = "Manca ?code= nella URL.";
+        errEl.textContent = "Manca ?code= nella URL.";
+        btnSend.disabled = true;
         return;
       }
-      log("code: " + codiceQR);
 
-      // recupero email proprietario (solo per coerenza; il listener NON filtra per email)
       const ownerEmail = await getOwnerEmailFromCode(codiceQR);
-      log("ownerEmail: " + ownerEmail);
 
-      // LISTENER: prende TUTTI i messaggi di questo codice (quindi vede anche le risposte)
+      // LISTENER: TUTTI i messaggi con questo codice
       const qByCode = query(collection(db,"messaggi"), where("codice","==", codiceQR));
       onSnapshot(qByCode, (snap)=>{
         const docs = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-        log("snapshot: " + docs.length + " doc");
 
-        // normalizza e ordina
+        counter.textContent = "docs letti: " + docs.length;
+
         const list = docs.map(m => ({
           testo: m.testo,
-          dir:   m.dir ?? (m.from === "owner" ? "out" : "in"),   // legacy compat
-          ts:    m.ts   ?? m.data,
+          dir:   m.dir ?? (m.from === "owner" ? "out" : "in"), // compat legacy
+          ts:    m.ts   ?? m.data
         })).sort((a,b)=>{
           const ta = a.ts?.seconds || a.ts?.toDate?.().getTime()/1000 || 0;
           const tb = b.ts?.seconds || b.ts?.toDate?.().getTime()/1000 || 0;
@@ -115,38 +104,37 @@
           thread.textContent = "Ancora nessun messaggio. Scrivi il primo!";
           return;
         }
-
         thread.innerHTML = "";
         list.forEach(m=>{
           const div  = document.createElement("div");
           const when = m.ts?.toDate ? m.ts.toDate().toLocaleString()
-                     : (m.ts?.seconds ? new Date(m.ts.seconds*1000).toLocaleString() : "");
+                   : (m.ts?.seconds ? new Date(m.ts.seconds*1000).toLocaleString() : "");
           div.className = "msg " + (m.dir === "out" ? "from-owner" : "from-finder");
           div.innerHTML = `<div>${escapeHtml(m.testo || "")}</div>${when?`<div class="ts">${when}</div>`:""}`;
           thread.appendChild(div);
         });
         thread.scrollTop = thread.scrollHeight;
+      }, (err)=>{
+        errEl.textContent = "Errore listener: " + err.message;
       });
 
-      // INVIO messaggio (in → al proprietario)
-      btn.onclick = async ()=>{
+      // INVIO (verso il proprietario)
+      btnSend.onclick = async ()=>{
         const testo = (msgEl.value || "").trim();
         if (!testo) { alert("Scrivi un messaggio."); return; }
         try{
           await addDoc(collection(db,"messaggi"), {
             codice: codiceQR,
-            toEmail: ownerEmail ?? null,   // se c'è lo mettiamo, altrimenti è comunque visibile
+            toEmail: ownerEmail ?? null,
             fromEmail: null,
             testo,
             dir: "in",
             letto: false,
             ts: serverTimestamp()
           });
-          log("inviato");
           msgEl.value = "";
         }catch(e){
-          console.error(e);
-          erro.textContent = "Errore invio.";
+          errEl.textContent = "Errore invio: " + e.message;
         }
       };
     }
