@@ -28,32 +28,26 @@
     <h1>Hai trovato un oggetto?</h1>
     <p class="subtitle">Scrivi al proprietario. Tieni aperta questa pagina per vedere le risposte in tempo reale.</p>
 
+    <!-- THREAD -->
     <div class="thread" id="thread">Caricamento…</div>
     <div id="errore"></div>
 
+    <!-- FORM -->
     <div class="form">
       <input id="nome" placeholder="Il tuo nome (opzionale)"/>
       <input id="contatto" placeholder="Contatto per risposta (email o telefono, opzionale)"/>
       <textarea id="messaggio" rows="3" placeholder="Scrivi il tuo messaggio qui..."></textarea><br>
       <button id="inviaBtn">Invia messaggio</button>
-      <div class="hint">Suggerimento: conserva questa pagina aperta. Le risposte del proprietario appariranno qui.</div>
+      <div class="hint">Suggerimento: lascia questa pagina aperta. Le risposte appariranno qui.</div>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore,
-      collection,
-      query,
-      where,
-      getDocs,
-      addDoc,
-      serverTimestamp,
-      onSnapshot
+      getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // --- Firebase ---
     const firebaseConfig = {
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
       authDomain: "backtag-16de3.firebaseapp.com",
@@ -66,7 +60,6 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // --- DOM ---
     const threadEl = document.getElementById("thread");
     const erroreEl = document.getElementById("errore");
     const nomeEl   = document.getElementById("nome");
@@ -74,71 +67,45 @@
     const msgEl    = document.getElementById("messaggio");
     const inviaBtn = document.getElementById("inviaBtn");
 
-    // --- Parametri ---
-    const params   = new URLSearchParams(window.location.search);
+    const params   = new URLSearchParams(location.search);
     const codiceQR = (params.get("code") || "").trim();
+    let ownerEmail = null;
 
-    let ownerEmail = null; // email proprietario del QR
-
-    // Geolocalizzazione con timeout (per log scansione)
-    function getPositionWithTimeout(timeoutMs = 8000) {
-      return new Promise((resolve) => {
-        if (!navigator.geolocation) return resolve(null);
-        let done = false;
-        const timer = setTimeout(()=>{ if(!done){ done=true; resolve(null);} }, timeoutMs);
-        navigator.geolocation.getCurrentPosition(
-          (pos) => { if(done) return; done=true; clearTimeout(timer);
-            resolve({ lat:pos.coords.latitude, lng:pos.coords.longitude, accuracy:pos.coords.accuracy });
-          },
-          () => { if(done) return; done=true; clearTimeout(timer); resolve(null); },
-          { enableHighAccuracy:true, maximumAge:0, timeout:timeoutMs }
-        );
-      });
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, c => (
+        { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]
+      ));
     }
 
-    async function init() {
-      if (!codiceQR) {
+    async function init(){
+      if (!codiceQR){
         threadEl.textContent = "QR Code non valido o mancante.";
         inviaBtn.disabled = true;
         return;
       }
 
-      // 1) Trova proprietario dal QR
+      // 1) Recupero email proprietario dal QR
       const qrSnap = await getDocs(query(collection(db,"qrcodes"), where("code","==", codiceQR)));
-      if (qrSnap.empty) {
+      if (qrSnap.empty){
         threadEl.textContent = "QR Code non trovato o non ancora registrato.";
         inviaBtn.disabled = true;
         return;
       }
       ownerEmail = qrSnap.docs[0].data().email;
-      // 2) Log scansione (facoltativo)
-      try {
-        const gps = await getPositionWithTimeout(8000);
-        await addDoc(collection(db, "scansioni"), {
-          codice: codiceQR,
-          email: ownerEmail,
-          userAgent: navigator.userAgent,
-          referrer: document.referrer || "",
-          time: serverTimestamp(),
-          ...(gps ? { lat:gps.lat, lng:gps.lng, accuracy:gps.accuracy } : {})
-        });
-      } catch (e) {
-        console.warn("Log scansione fallito:", e);
-      }
 
-      // 3) Ascolta la chat in tempo reale (per questo QR + proprietario)
+      // 2) Listener realtime del thread (solo questo QR + proprietario)
       const qByCode = query(collection(db,"messaggi"), where("codice","==", codiceQR));
       onSnapshot(qByCode, (snap)=>{
         const all = snap.docs.map(d => d.data());
-        // Schema nuovo (toEmail/dir/ts) + eventuali legacy convertiti
-        const nuovi  = all.filter(m => m.toEmail === ownerEmail);
-        const legacy = all.filter(m => !m.toEmail && m.email === ownerEmail)
-                          .map(m => ({ testo:m.testo, dir:(m.from==="owner"?"out":"in"), ts:m.data }));
-        const list = [...nuovi, ...legacy].sort((a,b)=>{
-          const ta = a.ts?.seconds || a.ts?.toDate?.().getTime()/1000 || 0;
-          const tb = b.ts?.seconds || b.ts?.toDate?.().getTime()/1000 || 0;
-          return ta - tb;
-        });
+        // prendo i messaggi destinati a questo proprietario
+        const list = all
+          .filter(m => (m.toEmail && m.toEmail === ownerEmail) || (!m.toEmail && m.email === ownerEmail))
+          .map(m => m.toEmail ? m : ({ testo:m.testo, dir:(m.from==="owner"?"out":"in"), ts:m.data }))
+          .sort((a,b)=>{
+            const ta = a.ts?.seconds || a.ts?.toDate?.().getTime()/1000 || 0;
+            const tb = b.ts?.seconds || b.ts?.toDate?.().getTime()/1000 || 0;
+            return ta - tb;
+          });
 
         if (!list.length){
           threadEl.textContent = "Ancora nessun messaggio. Scrivi il primo!";
@@ -157,13 +124,12 @@
         threadEl.scrollTop = threadEl.scrollHeight;
       });
 
-      // 4) Invio messaggio (dir="in", letto=false)
+      // 3) Invio messaggio (in → verso il proprietario)
       inviaBtn.onclick = async ()=>{
         const testo = (msgEl.value || "").trim();
         const nome  = (nomeEl.value || "").trim();
         const cont  = (contEl.value || "").trim();
         if (!testo) { alert("Scrivi un messaggio prima di inviare."); return; }
-        if (!ownerEmail) { alert("Errore: QR non valido."); return; }
 
         try{
           await addDoc(collection(db, "messaggi"), {
@@ -173,22 +139,16 @@
             nome: nome || null,
             contatto: cont || null,
             testo,
-            dir: "in",               // verso il proprietario
-            letto: false,            // per attivare badge sul profilo
+            dir: "in",
+            letto: false,
             ts: serverTimestamp()
           });
           msgEl.value = "";
         }catch(e){
-          console.error("Errore invio:", e);
+          console.error(e);
           erroreEl.textContent = "Errore nell'invio del messaggio.";
         }
       };
-    }
-
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, c => (
-        { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]
-      ));
     }
 
     init();
