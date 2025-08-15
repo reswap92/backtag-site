@@ -3,19 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chat - BackTag (v9)</title>
+  <title>Chat - BackTag</title>
   <style>
-    body{font-family:Arial,sans-serif;background:#fefaf6;color:#111;text-align:center;padding:24px;margin:0}
-    .logo{width:220px;margin:6px auto 10px;display:block}
-    h1{margin:8px 0 4px}
-    .subtitle{margin:0 0 14px;color:#555}
-    #counter{font-size:18px;font-weight:700;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;max-width:760px;margin:8px auto}
-    #thread{background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;min-height:220px;max-height:380px;overflow:auto;text-align:left;max-width:760px;margin:8px auto}
-    .msg{padding:8px 10px;border-radius:10px;margin:8px 0;max-width:80%}
+    body{font-family:Arial,sans-serif;background:#fefaf6;color:#111;text-align:center;margin:0;padding:24px}
+    .logo{width:240px;margin:6px auto 10px;display:block}
+    h1{margin:8px 0 6px}
+    .subtitle{margin:0 0 16px;color:#555}
+    #counter{font-size:14px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:6px;max-width:760px;margin:8px auto}
+    #thread{background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;min-height:220px;max-height:400px;overflow:auto;text-align:left;max-width:760px;margin:8px auto}
+    .msg{padding:10px 12px;border-radius:10px;margin:8px 0;max-width:80%}
     .from-finder{background:#f0e6d5}
     .from-owner{background:#141414;color:#fff;margin-left:auto}
     .ts{font-size:12px;opacity:.8;margin-top:4px}
-    textarea{width:100%;max-width:760px;padding:12px;border:1px solid #ccc;border-radius:10px;box-sizing:border-box}
+    .row{max-width:760px;margin:14px auto}
+    textarea{width:100%;padding:12px;border:1px solid #ccc;border-radius:10px;box-sizing:border-box}
     button{background:#a58c6b;color:#fff;border:0;padding:10px 18px;border-radius:10px;cursor:pointer;margin-top:8px}
     #err{color:#b00;margin:8px 0;font-weight:bold}
   </style>
@@ -29,7 +30,7 @@
   <div id="thread">Caricamento conversazione…</div>
   <div id="err"></div>
 
-  <div style="max-width:760px;margin:14px auto">
+  <div class="row">
     <textarea id="msg" rows="3" placeholder="Scrivi il tuo messaggio qui…"></textarea><br>
     <button id="send">Invia messaggio</button>
   </div>
@@ -41,6 +42,7 @@
       serverTimestamp, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // --- Firebase ---
     const firebaseConfig = {
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
       authDomain: "backtag-16de3.firebaseapp.com",
@@ -53,14 +55,16 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    const params   = new URLSearchParams(location.search);
-    const codiceQR = (params.get("code") || "").trim();
-
+    // --- DOM ---
     const thread  = document.getElementById("thread");
     const counter = document.getElementById("counter");
     const errEl   = document.getElementById("err");
     const msgEl   = document.getElementById("msg");
     const btnSend = document.getElementById("send");
+
+    // --- Parametri ---
+    const params   = new URLSearchParams(location.search);
+    const codiceQR = (params.get("code") || "").trim();
 
     function escapeHtml(s){
       return String(s).replace(/[&<>"']/g, c => (
@@ -68,7 +72,7 @@
       ));
     }
 
-    // trova email proprietario dal QR (serve per associare il destinatario quando invii)
+    // Recupera l'email del proprietario dal QR (serve come destinatario quando invii)
     async function getOwnerEmailFromCode(code){
       const s = await getDocs(query(collection(db,"qrcodes"), where("code","==", code)));
       return s.empty ? null : (s.docs[0].data().email || null);
@@ -82,17 +86,17 @@
       }
 
       const ownerEmail = await getOwnerEmailFromCode(codiceQR);
-
-      // LISTENER: TUTTI i messaggi con questo codice
+      // LISTENER: mostra TUTTI i messaggi di questo codice (sia trovante che proprietario)
       const qByCode = query(collection(db,"messaggi"), where("codice","==", codiceQR));
       onSnapshot(qByCode, (snap)=>{
         const docs = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-
         counter.textContent = "docs letti: " + docs.length;
 
         const list = docs.map(m => ({
           testo: m.testo,
-          dir:   m.dir ?? (m.from === "owner" ? "out" : "in"), // compat legacy
+          // dir nuovo oppure mappo dal vecchio "from"
+          dir:   m.dir ?? (m.from === "owner" ? "out" : "in"),
+          // timestamp nuovo (ts) oppure vecchio (data)
           ts:    m.ts   ?? m.data
         })).sort((a,b)=>{
           const ta = a.ts?.seconds || a.ts?.toDate?.().getTime()/1000 || 0;
@@ -125,7 +129,7 @@
         try{
           await addDoc(collection(db,"messaggi"), {
             codice: codiceQR,
-            toEmail: ownerEmail ?? null,
+            toEmail: ownerEmail ?? null, // se disponibile
             fromEmail: null,
             testo,
             dir: "in",
