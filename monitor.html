@@ -48,12 +48,15 @@
     .scansioni ul {
       list-style: none;
       padding: 0;
+      margin: 0;
     }
     .scansioni li {
       margin-bottom: 10px;
       border-bottom: 1px solid #ddd;
       padding-bottom: 8px;
     }
+    .muted { color:#555 }
+    .warn { color:#a00; font-weight:bold; text-align:center; margin-top:8px }
   </style>
 </head>
 <body>
@@ -67,19 +70,16 @@
     <ul id="listaScansioni">
       <li>Caricamento...</li>
     </ul>
+    <div id="err" class="warn"></div>
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore,
-      collection,
-      query,
-      where,
-      getDocs,
-      orderBy
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+      getFirestore, collection, query, where, onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // --- Firebase ---
     const firebaseConfig = {
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
       authDomain: "backtag-16de3.firebaseapp.com",
@@ -89,44 +89,80 @@
       appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
       measurementId: "G-6565LXTZW7"
     };
-
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db  = getFirestore(app);
 
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    document.getElementById("qrLabel").textContent = `Codice: ${code}`;
-    document.getElementById("qrImage").innerHTML = `<img src="https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=${encodeURIComponent(code)}" alt="QR">`;
-
+    // --- DOM ---
     const listaScansioni = document.getElementById("listaScansioni");
+    const labelEl = document.getElementById("qrLabel");
+    const imgEl   = document.getElementById("qrImage");
+    const errEl   = document.getElementById("err");
 
-    async function caricaScansioni() {
-      const scansioniRef = collection(db, "scansioni");
-      const q = query(scansioniRef, where("codice", "==", code), orderBy("time", "desc"));
-      const snapshot = await getDocs(q);
+    // --- Parametri ---
+    const params = new URLSearchParams(window.location.search);
+    const code = (params.get("code") || "").trim();
 
-      listaScansioni.innerHTML = "";
+    labelEl.textContent = `Codice: ${code || "—"}`;
+    imgEl.innerHTML = code
+      ? `<img src="https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=${encodeURIComponent(code)}" alt="QR">`
+      : "";
 
-      if (snapshot.empty) {
-        listaScansioni.innerHTML = "<li>Nessuna scansione trovata.</li>";
-        return;
-      }
-
-      snapshot.forEach(doc => {
-        const dati = doc.data();
-        const data = dati.time?.toDate?.().toLocaleString() || "Data sconosciuta";
-        const userAgent = dati.userAgent || "Dispositivo sconosciuto";
-        const posizione = dati.posizione
-          ? `Lat: ${dati.posizione.lat}, Lng: ${dati.posizione.lng}`
-          : "Posizione non disponibile";
-
-        const li = document.createElement("li");
-        li.innerHTML = `<strong>${data}</strong><br>📱 ${userAgent}<br>📍 ${posizione}`;
-        listaScansioni.appendChild(li);
-      });
+    if (!code) {
+      listaScansioni.innerHTML = "<li>Nessun codice fornito nella URL (?code=...)</li>";
+    } else {
+      caricaScansioniRealtime(code);
     }
 
-    window.addEventListener("DOMContentLoaded", caricaScansioni);
+    function fmtTs(ts){
+      if (!ts) return "";
+      if (ts.toDate) return ts.toDate().toLocaleString();
+      if (ts.seconds) return new Date(ts.seconds * 1000).toLocaleString();
+      return "";
+    }
+
+    function caricaScansioniRealtime(codice){
+      // NIENTE orderBy: evitiamo l'indice. Ordiniamo lato client per time DESC.
+      const qByCode = query(collection(db, "scansioni"), where("codice", "==", codice));
+
+      onSnapshot(qByCode, (snap) => {
+        const rows = snap.docs.map(d => d.data());
+
+        // ordina per time desc (supporta sia ts con toDate() sia {seconds})
+        rows.sort((a,b) => {
+          const ta = (a.time?.toDate ? a.time.toDate().getTime() : (a.time?.seconds ? a.time.seconds*1000 : 0));
+          const tb = (b.time?.toDate ? b.time.toDate().getTime() : (b.time?.seconds ? b.time.seconds*1000 : 0));
+          return tb - ta;
+        });
+
+        if (!rows.length) {
+          listaScansioni.innerHTML = "<li>Nessuna scansione trovata.</li>";
+          return;
+        }
+
+        listaScansioni.innerHTML = "";
+        rows.forEach(dati => {
+          const data = fmtTs(dati.time) || "Data sconosciuta";
+          const ua   = dati.userAgent || "Dispositivo sconosciuto";
+          // Nella tua chat salvi lat/lng/accuracy (non 'posizione')
+          const pos  = (typeof dati.lat === "number" && typeof dati.lng === "number")
+                        ? `Lat: ${dati.lat.toFixed(5)}, Lng: ${dati.lng.toFixed(5)}`
+                        : "Posizione non disponibile";
+          const acc  = (typeof dati.accuracy === "number") ? ` (±${Math.round(dati.accuracy)} m)` : "";
+          const ref  = dati.referrer ? dati.referrer.replace(/^https?:\/\//, "") : "—";
+
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <strong>${data}</strong><br>
+            📍 ${pos}${acc}<br>
+            🔗 <span class="muted">Referrer:</span> ${ref}<br>
+            📱 <span class="muted">UA:</span> ${ua}
+          `;
+          listaScansioni.appendChild(li);
+        });
+      }, (e) => {
+        errEl.textContent = "Errore nel caricamento scansioni: " + e.message;
+      });
+    }
   </script>
 </body>
 </html>
