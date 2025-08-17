@@ -15,7 +15,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 30px;
+      padding: 5px 20px; /* ↓ meno spazio sopra/sotto */
     }
     .logo {
       width: 800px;
@@ -31,6 +31,17 @@
     }
     nav a:hover {
       color: #a6947c;
+    }
+    /* bottone per "Accedi al profilo" */
+    nav a.button {
+      background-color: #a6947c;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 5px;
+    }
+    nav a.button:hover {
+      color: #fff;
+      background-color: #8a7d68;
     }
 
     .slogan {
@@ -185,7 +196,7 @@
   <header>
     <img src="logo-backtag.png" alt="Logo BackTag" class="logo">
     <nav>
-      <a href="accedi.html">Accedi al profilo</a>
+      <a href="accedi.html" class="button">Accedi al profilo</a>
       <a href="funziona.html">Come funziona</a>
       <a href="contatti.html">Contatti</a>
     </nav>
@@ -237,19 +248,3 @@
     <p style="font-weight: bold; font-size: 18px;">• Nessuna app da installare<br>
     • Nessun dato personale<br>
     • Chat anonima integrata<br>
-    • Premi volontari per chi restituisce</p>
-  </div>
-
-  <div class="cta">
-    <h3>Proteggi ciò che conta. Inizia ora.</h3>
-    <div class="cta-buttons">
-      <button onclick="location.href='accedi.html'">Attiva il tuo QR code</button>
-      <button class="secondary" onclick="location.href='trova.html'">Contatta il proprietario</button>
-    </div>
-  </div>
-
-  <footer>
-    Privacy &nbsp;|&nbsp; Termini &nbsp;|&nbsp; Contatti &nbsp;© 2024 BackTag
-  </footer>
-</body>
-</html>
