@@ -51,7 +51,7 @@
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       gap: 10px; text-align: center;
-      pointer-events: none; /* il click passa solo al bottone */
+      pointer-events: none;
     }
     .overlay p {
       background: rgba(255,255,255,0.9);
@@ -61,7 +61,7 @@
       margin: 0;
     }
     .overlay button {
-      pointer-events: auto; /* riabilita il click sul bottone */
+      pointer-events: auto;
       background-color: black; color: white;
       border: none; padding: 10px 16px;
       border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;
@@ -142,7 +142,13 @@
       font-size: 24px;
       font-weight: bold;
     }
-    .cta button {
+    .cta-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 15px;
+    }
+    .cta-buttons button {
       background-color: #a6947c;
       color: white;
       font-weight: bold;
@@ -150,8 +156,10 @@
       border: none;
       border-radius: 5px;
       font-size: 16px;
-      margin-top: 10px;
       cursor: pointer;
+    }
+    .cta-buttons button.secondary {
+      background-color: #555;
     }
 
     footer {
@@ -175,7 +183,7 @@
   <div class="hero">
     <!-- NUOVO: immagine con testo + bottone centrati sopra -->
     <div class="img-box">
-      <img src="valigia.png" alt="Oggetto smarrito"><!-- cambia src se il tuo file ha un altro nome -->
+      <img src="valigia.png" alt="Oggetto smarrito">
       <div class="overlay">
         <p>Hai trovato un oggetto?</p>
         <button onclick="location.href='trova.html'">Contatta il proprietario</button>
@@ -221,7 +229,10 @@
 
   <div class="cta">
     <h3>Proteggi ciò che conta. Inizia ora.</h3>
-    <button onclick="location.href='accedi.html'">Attiva il tuo QR code</button>
+    <div class="cta-buttons">
+      <button onclick="location.href='accedi.html'">Attiva il tuo QR code</button>
+      <button class="secondary" onclick="location.href='trova.html'">Contatta il proprietario</button>
+    </div>
   </div>
 
   <footer>
