@@ -32,8 +32,9 @@
 <body>
   <main class="wrap">
     <div class="logo">
-      <!-- cambia il percorso se serve -->
-      <img src="assets/logo-backtag-300.png" alt="BackTag"/>
+      <!-- Logo corretto con fallback -->
+      <img src="logo-backtag.png" alt="BackTag"
+           onerror="this.onerror=null; this.src='assets/logo-backtag-300.png';" />
     </div>
 
     <section class="card">
@@ -65,7 +66,6 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    // funzione globale per aggiornare gli slot dopo il pagamento
     async function addTenSlots(){
       const email = localStorage.getItem("email");
       if(!email){ console.warn("Email mancante in localStorage"); return; }
@@ -74,19 +74,16 @@
       const snap = await getDoc(ref);
 
       if(!snap.exists()){
-        // crea il profilo utente con 6 base + 10 extra
         await setDoc(ref, { baseSlots: 6, extraSlots: 10, updatedAt: Date.now() });
       }else{
         const curr = Number(snap.data().extraSlots || 0);
         await updateDoc(ref, { extraSlots: curr + 10, updatedAt: Date.now() });
       }
     }
-
-    // esponi per il codice PayPal sotto (non-module)
     window.__addTenSlots = addTenSlots;
   </script>
 
-  <!-- PayPal SDK live con IL TUO client-id -->
+  <!-- PayPal SDK live -->
   <script src="https://www.paypal.com/sdk/js?client-id=Af9_Axhg9ncsuTlpPqrk75Q4J0diJivqFwkJZhoIp4JjaGMubk23V9ukol8bfs0XdkNnY_Dpin5jmSrG&currency=EUR"></script>
   <script>
     paypal.Buttons({
@@ -99,10 +96,9 @@
         }]
       }),
       onApprove: async (data, actions) => {
-        await actions.order.capture();         // pagamento ok
-        try { await window.__addTenSlots(); }  // aggiorna Firestore
-        catch(e){ console.error(e); }
-        location.href = "profilo.html?paid=slots10"; // ritorna al profilo
+        await actions.order.capture();
+        try { await window.__addTenSlots(); } catch(e){ console.error(e); }
+        location.href = "profilo.html?paid=slots10";
       },
       onError: (err) => {
         console.error('PayPal error', err);
