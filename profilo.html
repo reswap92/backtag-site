@@ -29,14 +29,13 @@
       cursor: pointer;
       font-size: 14px;
     }
-    .logout-btn:hover {
-      background-color: #8c7558;
-    }
+    .logout-btn:hover { background-color: #8c7558; }
+
     .card {
       background-color: #fff9f0;
       padding: 40px;
       border-radius: 24px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
       width: 360px;
       text-align: center;
       position: relative;
@@ -120,15 +119,37 @@
       slotEl.onclick = () => location.href = `attiva.html?slot=${index}`;
     }
 
+    function makeQrImg(qrCode, size=100) {
+      const img = document.createElement("img");
+      img.alt = "QR";
+      img.width = size; img.height = size;
+      const g = `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chld=L|0&chl=${encodeURIComponent(qrCode)}`;
+      const f = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrCode)}`;
+      img.src = g;
+      img.onerror = () => { img.onerror = null; img.src = f; };
+      return img;
+    }
+
     function renderFilledSlot(slotEl, index, data) {
-      slotEl.innerHTML = `
-        <img src="https://chart.googleapis.com/chart?cht=qr&chs=100x100&chl=${encodeURIComponent(data.code)}" alt="QR">
-        <div class="slot-info"><strong>${data.label}</strong><br><small>${data.code}</small></div>
-        <div class="slot-buttons">
-          <button onclick="location.href='attiva.html?slot=${index}'">✏️</button>
-          <button onclick="location.href='monitor.html?code=${encodeURIComponent(data.code)}'">📈</button>
-        </div>
+      const code  = data.code ?? data.codice ?? "";
+      const label = data.label ?? data.nome ?? "QR";
+
+      slotEl.innerHTML = "";
+      slotEl.appendChild(makeQrImg(code, 100));
+
+      const info = document.createElement("div");
+      info.className = "slot-info";
+      info.innerHTML = `<strong>${label}</strong><br><small>${code}</small>`;
+      slotEl.appendChild(info);
+
+      const btns = document.createElement("div");
+      btns.className = "slot-buttons";
+      btns.innerHTML = `
+        <button onclick="location.href='attiva.html?slot=${index}'">✏️</button>
+        <button onclick="location.href='monitor.html?code=${encodeURIComponent(code)}'">📈</button>
       `;
+      slotEl.appendChild(btns);
+
       slotEl.style.border = "2px solid #a58c6b";
       slotEl.style.backgroundColor = "#fff";
       slotEl.style.cursor = "default";
@@ -184,14 +205,11 @@
     async function caricaQR() {
       if (!email) return;
 
-      // 1) leggi quanti extraSlots ha l'utente
       const extra = await getExtraSlots(email);
       const total = BASE_SLOTS + Math.max(0, extra);
 
-      // 2) costruisci la griglia dinamicamente
       const slotElements = await buildGrid(total);
 
-      // 3) riempi gli slot con i QR esistenti
       const qrRef = collection(db, "qrcodes");
       const q     = query(qrRef, where("email","==", email));
       const snap  = await getDocs(q);
@@ -202,14 +220,13 @@
         const slot  = slotElements[index];
         if (!slot) return;
         renderFilledSlot(slot, index, data);
-        addUnreadBadgeIfAny(slot, data.code);
+        addUnreadBadgeIfAny(slot, data.code ?? data.codice ?? "");
       });
     }
 
     window.addEventListener("DOMContentLoaded", caricaQR);
     window.addEventListener("pageshow", () => caricaQR());
 
-    // Funzione logout
     function logout() {
       localStorage.removeItem("email");
       window.location.href = "index.html";
@@ -227,7 +244,6 @@
     <h1>Profilo</h1>
     <h3>QR attivi</h3>
 
-    <!-- griglia dinamica -->
     <div id="grid" class="qr-grid"></div>
 
     <div class="cta">
