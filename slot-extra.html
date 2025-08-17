@@ -45,8 +45,9 @@
 <body>
   <main class="wrap">
     <div class="logo">
-      <!-- Sostituisci con il tuo file logo ufficiale (300px) -->
-      <img src="assets/logo-backtag-300.png" alt="BackTag" />
+      <!-- Prova il logo in root, poi fallback alla vecchia path -->
+      <img src="logo-backtag.png" alt="BackTag"
+           onerror="this.onerror=null; this.src='assets/logo-backtag-300.png';" />
     </div>
 
     <section class="card">
