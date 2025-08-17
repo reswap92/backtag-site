@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="it">
+<!DOCTYPE html>
+<html lang="it">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,155 +10,151 @@
       margin: 0;
       padding: 0;
       background-color: #fefaf6;
-    }header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 30px;
-}
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 30px;
+    }
+    .logo {
+      width: 800px;
+      max-width: 90%;
+      height: auto;
+    }
+    nav a {
+      margin-left: 30px;
+      font-weight: bold;
+      color: black;
+      text-decoration: none;
+    }
 
-.logo {
-  width: 800px;
-}
+    .hero {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 30px;
+      padding: 30px;
+      flex-wrap: wrap;
+    }
 
-nav a {
-  margin-left: 30px;
-  font-weight: bold;
-  color: black;
-  text-decoration: none;
-}
+    .valigia-box {
+      position: relative;
+      width: 320px;
+      height: 420px;
+      border: 12px solid #333;
+      border-radius: 10px;
+      padding: 20px;
+      background-color: white;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .valigia-box p {
+      font-weight: bold;
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+    .valigia-box button {
+      background-color: black;
+      color: white;
+      border: none;
+      padding: 16px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 6px;
+    }
 
-.hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 30px;
-}
+    .card-box {
+      width: 320px;
+      height: 420px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+    .card-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+    }
 
-.hero-text {
-  max-width: 50%;
-}
+    .hero-image {
+      width: 320px;
+      height: 420px;
+      object-fit: cover;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
 
-.hero-text h1 {
-  font-size: 60px;
-  font-weight: bold;
-  margin-top: 400px;
-  margin-bottom: 60px;
-}
+    .funzione {
+      text-align: center;
+      padding: 40px 30px;
+    }
+    .funzione h2 {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 40px;
+    }
+    .icone {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      padding: 0 30px;
+      gap: 20px;
+    }
+    .icona {
+      text-align: center;
+      max-width: 250px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .icona img {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 10px;
+    }
+    .icona h3 {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+    .icona p {
+      font-weight: bold;
+      font-size: 16px;
+    }
 
-.hero-text button {
-  background-color: #a6947c;
-  color: white;
-  font-weight: bold;
-  padding: 15px 30px;
-  border: none;
-  border-radius: 2px;
-  font-size: 16px;
-  cursor: pointer;
-}
+    .cta {
+      text-align: center;
+      margin-top: 40px;
+    }
+    .cta h3 {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .cta button {
+      background-color: #a6947c;
+      color: white;
+      font-weight: bold;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
 
-.valigia-box {
-  position: relative;
-  margin-top: 100px;
-  width: 500px;
-  height: 630px;
-  border: 20px solid #333;
-  border-radius: 10px;
-  padding: 20px;
-  background-color: white;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.valigia-box p {
-  font-weight: bold;
-  font-size: 28px;
-  margin-bottom: 10px;
-}
-
-.valigia-box button {
-  background-color: black;
-  color: white;
-  border: none;
-  padding: 20px 30px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.hero-image {
-  max-width: 600px;
-  margin-left: 60px;
-}
-
-.funzione {
-  text-align: center;
-  padding: 40px 30px;
-}
-
-.funzione h2 {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 40px;
-}
-
-.icone {
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  padding: 0 30px;
-}
-
-.icona {
-  text-align: center;
-  max-width: 250px;
-}
-
-.icona img {
-  width: 26px;
-  height: 26px;
-  margin-bottom: 10px;
-}
-
-.icona h3 {
-  font-weight: bold;
-  font-size: 18px;
-  margin-bottom: 5px;
-}
-
-.icona p {
-  font-weight: bold;
-  font-size: 16px;
-}
-
-.cta {
-  text-align: center;
-  margin-top: 40px;
-}
-
-.cta h3 {
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.cta button {
-  background-color: #a6947c;
-  color: white;
-  font-weight: bold;
-  padding: 15px 30px;
-  border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  margin-top: 10px;
-  cursor: pointer;
-}
-
-footer {
-  text-align: center;
-  padding: 30px;
-  font-size: 14px;
-  color: #777;
-}
-
+    footer {
+      text-align: center;
+      padding: 30px;
+      font-size: 14px;
+      color: #777;
+    }
   </style>
 </head>
 <body>
@@ -168,44 +165,58 @@ footer {
       <a href="funziona.html">Come funziona</a>
       <a href="contatti.html">Contatti</a>
     </nav>
-  </header> <div class="hero">
-    <div class="hero-text">
-      <div class="valigia-box">
-        <p>Hai trovato una valigia?</p>
-        <button onclick="location.href='trova.html'">Contatta il proprietario</button>
-      </div>
-      <h1>Trova. Scansiona. Restituisci.</h1>
-      <button onclick="location.href='attiva.html'">Attiva il tuo BackTag</button>
+  </header>
+
+  <div class="hero">
+    <!-- Box valigia -->
+    <div class="valigia-box">
+      <p>Hai trovato una valigia?</p>
+      <button onclick="location.href='trova.html'">Contatta il proprietario</button>
     </div>
+
+    <!-- Card BackTag al centro -->
+    <div class="card-box">
+      <img src="backtagcard.jpg" alt="Card BackTag">
+    </div>
+
+    <!-- Busta BackTag -->
     <img src="busta-backtag.png" alt="Busta BackTag" class="hero-image">
-  </div> <div class="funzione">
+  </div>
+
+  <div class="funzione">
     <h2>Come funziona</h2>
     <div class="icone">
       <div class="icona">
-        <img src="icona1.png" alt="Icona QR">
+        <img src="img/icone/qrcode.png" alt="Icona QR">
         <h3>Attacca il QR</h3>
         <p>al tuo oggetto</p>
       </div>
       <div class="icona">
-        <img src="icona2.png" alt="Icona penna">
+        <img src="img/icone/pen.png" alt="Icona penna">
         <h3>Registra il QR</h3>
         <p>e scrivi un messaggio</p>
       </div>
       <div class="icona">
-        <img src="icona3.png" alt="Icona chat">
+        <img src="img/icone/chat.png" alt="Icona chat">
         <h3>Chi lo trova</h3>
         <p>può contattarti in chat</p>
       </div>
     </div>
-  </div> <div class="funzione" style="text-align:left; padding-left: 30px;">
+  </div>
+
+  <div class="funzione" style="text-align:left; padding-left: 30px;">
     <p style="font-weight: bold; font-size: 18px;">• Nessuna app da installare<br>
     • Nessun dato personale<br>
     • Chat anonima integrata<br>
     • Premi volontari per chi restituisce</p>
-  </div> <div class="cta">
+  </div>
+
+  <div class="cta">
     <h3>Proteggi ciò che conta. Inizia ora.</h3>
-    <button onclick="location.href='attiva.html'">Attiva il tuo QR code</button>
-  </div> <footer>
+    <button onclick="location.href='accedi.html'">Attiva il tuo QR code</button>
+  </div>
+
+  <footer>
     Privacy &nbsp;|&nbsp; Termini &nbsp;|&nbsp; Contatti &nbsp;© 2024 BackTag
   </footer>
 </body>
