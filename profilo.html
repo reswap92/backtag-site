@@ -18,6 +18,8 @@
       position: absolute;
       top: 20px;
       right: 20px;
+      display: flex;
+      gap: 10px;
     }
     .logout-btn {
       background-color: #a58c6b;
@@ -91,9 +93,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore, collection, query, where, getDocs, doc, getDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
@@ -105,8 +105,8 @@
       measurementId: "G-6565LXTZW7"
     };
 
-    const app  = initializeApp(firebaseConfig);
-    const db   = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     const BASE_SLOTS = 6;
     const email = localStorage.getItem("email");
@@ -237,6 +237,7 @@
 <body>
   <div class="top-bar">
     <button class="logout-btn" onclick="logout()">Esci</button>
+    <button class="logout-btn" onclick="window.location.href='shop.html'">Shop</button>
   </div>
 
   <div class="card">
