@@ -20,6 +20,7 @@
       padding:28px 22px; box-shadow:0 18px 40px rgba(0,0,0,.06)
     }
     h1{ text-align:center; font-size:30px; margin:8px 0 10px }
+    .summary{ text-align:center; margin:10px 0 14px; line-height:1.5 }
     #paypal-container{ max-width:640px; margin:18px auto 0 }
     .btn-back{
       display:block; text-align:center; background:var(--bronze); color:#fff;
@@ -27,28 +28,35 @@
       text-decoration:none; max-width:640px; margin:14px auto 0;
     }
     .small{ text-align:center; font-size:14px; opacity:.9; margin-top:14px }
+    .muted{ opacity:.75 }
   </style>
 </head>
 <body>
   <main class="wrap">
     <div class="logo">
-      <!-- Logo corretto con fallback -->
       <img src="logo-backtag.png" alt="BackTag"
            onerror="this.onerror=null; this.src='assets/logo-backtag-300.png';" />
     </div>
 
     <section class="card">
-      <h1>Totale: € 0,99 — paga in sicurezza</h1>
+      <h1 id="page-title">Pagamento</h1>
+
+      <div class="summary">
+        <div><strong id="prod-title">—</strong></div>
+        <div class="muted">SKU: <span id="prod-sku">—</span> · Q.tà: <span id="prod-qty">—</span></div>
+        <div>Prezzo unitario: <span id="prod-unit">—</span></div>
+        <div style="margin-top:6px">Totale: <strong id="prod-total">—</strong></div>
+      </div>
 
       <!-- PayPal Smart Buttons -->
       <div id="paypal-container"></div>
 
-      <a class="btn-back" href="slot-extra.html">Torna indietro</a>
-      <div class="small">Dopo il pagamento torni al profilo con 10 nuovi slot disponibili.</div>
+      <a class="btn-back" id="back-link" href="shop.html">Torna allo Shop</a>
+      <div class="small" id="post-pay-note"></div>
     </section>
   </main>
 
-  <!-- Firebase (inline, niente slots.js) -->
+  <!-- Firebase (per i +10 slot) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -86,25 +94,81 @@
   <!-- PayPal SDK live -->
   <script src="https://www.paypal.com/sdk/js?client-id=Af9_Axhg9ncsuTlpPqrk75Q4J0diJivqFwkJZhoIp4JjaGMubk23V9ukol8bfs0XdkNnY_Dpin5jmSrG&currency=EUR"></script>
   <script>
-    paypal.Buttons({
-      style:{ shape:'pill', color:'black', layout:'vertical', label:'paypal' },
-      createOrder: (data, actions) => actions.order.create({
-        intent:"CAPTURE",
-        purchase_units:[{
-          amount:{ currency_code:"EUR", value:"0.99" },
-          description:"BackTag - +10 slot"
-        }]
-      }),
-      onApprove: async (data, actions) => {
-        await actions.order.capture();
-        try { await window.__addTenSlots(); } catch(e){ console.error(e); }
-        location.href = "profilo.html?paid=slots10";
-      },
-      onError: (err) => {
-        console.error('PayPal error', err);
-        alert('Pagamento non riuscito. Riprova.');
-      }
-    }).render('#paypal-container');
+    (function(){
+      const q = new URLSearchParams(location.search);
+
+      // 1) Leggo i parametri dallo Shop
+      const paramSku    = q.get('sku');
+      const paramTitle  = q.get('title');
+      const paramAmount = q.get('amount');
+      const paramQty    = q.get('qty');
+
+      // 2) Se ci sono, uso quelli; altrimenti fallback a +10 slot (0,99€)
+      const product = (paramSku && paramTitle && paramAmount) ? {
+        sku: paramSku,
+        title: paramTitle,
+        unitPrice: parseFloat(paramAmount),
+        qty: parseInt(paramQty || '1', 10),
+        isSlots: false
+      } : {
+        sku: 'ADD-10-SLOTS',
+        title: 'BackTag — +10 slot profilo',
+        unitPrice: 0.99,
+        qty: 1,
+        isSlots: true
+      };
+
+      const subtotal = product.unitPrice * product.qty;
+      const total = subtotal; // se vuoi, qui puoi aggiungere spedizione
+
+      // 3) UI riepilogo
+      const $ = s => document.querySelector(s);
+      $('#prod-title').textContent = product.title;
+      $('#prod-sku').textContent   = product.sku;
+      $('#prod-qty').textContent   = product.qty;
+      $('#prod-unit').textContent  = `€ ${product.unitPrice.toFixed(2)}`;
+      $('#prod-total').textContent = `€ ${total.toFixed(2)}`;
+      $('#page-title').textContent = `Totale: € ${total.toFixed(2)} — paga in sicurezza`;
+
+      // Messaggino post-pagamento
+      const note = product.isSlots
+        ? 'Dopo il pagamento torni al profilo con 10 nuovi slot disponibili.'
+        : 'Dopo il pagamento riceverai conferma dell’ordine via email.';
+      const backHref = product.isSlots ? 'slot-extra.html' : 'shop.html';
+      document.getElementById('post-pay-note').textContent = note;
+      document.getElementById('back-link').setAttribute('href', backHref);
+
+      // 4) PayPal: ordine dinamico
+      paypal.Buttons({
+        style:{ shape:'pill', color:'black', layout:'vertical', label:'paypal' },
+        createOrder: (data, actions) => actions.order.create({
+          intent:"CAPTURE",
+          purchase_units:[{
+            amount:{ currency_code:"EUR", value: total.toFixed(2) },
+            description: product.title
+          }]
+        }),
+        onApprove: async (data, actions) => {
+          await actions.order.capture();
+          try {
+            if (product.isSlots) {
+              await window.__addTenSlots();
+              location.href = "profilo.html?paid=slots10";
+            } else {
+              // acquisto fisico: torna allo shop con conferma
+              location.href = `shop.html?ok=1&sku=${encodeURIComponent(product.sku)}`;
+            }
+          } catch(e){
+            console.error(e);
+            alert('Pagamento effettuato, ma c’è stato un problema con l’aggiornamento. Contattaci se non vedi il risultato.');
+          }
+        },
+        onError: (err) => {
+          console.error('PayPal error', err);
+          alert('Pagamento non riuscito. Riprova.');
+        }
+      }).render('#paypal-container');
+    })();
   </script>
 </body>
 </html>
