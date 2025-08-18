@@ -175,6 +175,24 @@
 
   <script>
     document.getElementById('y').textContent = new Date().getFullYear();
+     // Banner pagamento completato
+  if (new URLSearchParams(location.search).has("ok")) {
+    document.getElementById("ok-banner").style.display = "block";
+  }
+
+  // Facoltativo: propagazione UTM al checkout
+  const params = new URLSearchParams(location.search);
+  const utm = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content']
+    .filter(k => params.has(k))
+    .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params.get(k))}`)
+    .join('&');
+  if(utm){
+    document.querySelectorAll('.actions a').forEach(a => {
+      const url = new URL(a.getAttribute('href'), location.href);
+      url.search += (url.search ? '&' : '?') + utm;
+      a.setAttribute('href', url.pathname + url.search);
+    });
+  }
   </script>
 </body>
 </html>
