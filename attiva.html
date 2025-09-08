@@ -69,9 +69,7 @@
   <!-- Script in fondo, chiuso correttamente -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import {
-    getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp, collection
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
@@ -99,72 +97,53 @@
     window.location.href = "profilo.html";
   }
 
-  // Crea le possibili varianti ID: BT-0002 e BT-002
-  const buildCandidates = (raw) => {
-    const c = (raw || "").trim().toUpperCase();
-    const m = c.match(/^BT-?\d{1,4}$/);
-    if (!m) return [];
-    const digits = c.replace(/[^\d]/g, "");
-    const padded = `BT-${digits.padStart(4, "0")}`;
-    const compact = `BT-${String(parseInt(digits, 10))}`.replace("BT-NaN","BT-");
-    // Rimuovi duplicati e valori strani
-    return Array.from(new Set([padded, compact])).filter(x => /^BT-\d{1,4}$/.test(x));
+  // Accetta BT0002 o BT-0002 → normalizza a BT-0002
+  const normCode = (raw) => {
+    const c = (raw||"").trim().toUpperCase();
+    const m = c.match(/^BT-?\d{4}$/);
+    if (!m) return null;
+    const digits = c.replace(/[^\d]/g,"");
+    return `BT-${digits.padStart(4,"0")}`;
   };
 
-  // Trova quale dei candidati ESISTE realmente in Firestore
-  const pickExistingCodeId = async (raw) => {
-    const candidates = buildCandidates(raw);
-    for (const id of candidates) {
-      const snap = await getDoc(doc(db, "qrcodes", id));
-      if (snap.exists()) return { id, data: snap.data() };
-    }
-    return null;
-  };
-
-  // Prefill (se passi ?code=BT-0002 nell’URL lo carica)
+  // Prefill se passi ?code=BT-0002
   const codeParam = params.get("code");
   if (codeParam) {
     (async () => {
-      const found = await pickExistingCodeId(codeParam);
-      if (found) {
-        codeInput.value = found.id;
-        labelInput.value = found.data.label || "";
-        messageInput.value = found.data.message || "";
-        if (found.data.status === "registered") deleteBtn.style.display = "inline-block";
+      const codeId = normCode(codeParam);
+      if (!codeId) return;
+      const snap = await getDoc(doc(db, "qrcodes", codeId));
+      if (snap.exists()) {
+        const d = snap.data();
+        codeInput.value = d.code || codeId;
+        labelInput.value = d.label || "";
+        messageInput.value = d.message || "";
+        if (d.status === "registered") deleteBtn.style.display = "inline-block";
       } else {
-        // fallback: normalizza a 4 cifre in input
-        const digits = codeParam.replace(/[^\d]/g, "");
-        codeInput.value = `BT-${digits.padStart(4,"0")}`;
+        codeInput.value = codeId;
       }
     })().catch(console.error);
   }
 
-  // Salva/Registra
+  // Salva SOLO su qrcodes/BT-0002
   window.registraQR = async () => {
-    const raw = codeInput.value;
+    const codeId = normCode(codeInput.value);
     const label = labelInput.value.trim();
     const message = messageInput.value.trim();
-
-    if (!raw || !label || !message) return alert("Completa tutti i campi.");
+    if (!codeId) return alert("Codice non valido. Usa BT-0002.");
+    if (!label || !message) return alert("Completa tutti i campi.");
 
     try {
-      const found = await pickExistingCodeId(raw);
-      if (!found) {
-        alert("Questo codice non esiste nel database. Controlla l'ID in Firestore (BT-xxx o BT-xxxx).");
-        return;
+      const ref = doc(db, "qrcodes", codeId);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return alert("Questo codice non esiste in Firestore.");
+
+      const d = snap.data();
+      if (d.status === "registered" && d.email && d.email !== email) {
+        return alert("Questo QR risulta già registrato.");
       }
 
-      const codeId = found.id;
-      const codeDocRef = doc(db, "qrcodes", codeId);
-
-      // Blocco doppie registrazioni
-      if (found.data.status === "registered" && found.data.email && found.data.email !== email) {
-        alert("Questo QR risulta già registrato.");
-        return;
-      }
-
-      // Aggiorna SOLO il doc del codice
-      await setDoc(codeDocRef, {
+      await setDoc(ref, {
         email,
         slotIndex: slot,
         code: codeId,
@@ -172,59 +151,31 @@
         message,
         status: "registered",
         updatedAt: serverTimestamp(),
-        ...(found.data ? {} : { createdAt: serverTimestamp() })
+        ...(snap.exists() ? {} : { createdAt: serverTimestamp() })
       }, { merge: true });
 
-      // Prova a scrivere il mapping utente→slot (se le regole lo bloccano, ignora l’errore)
-      try {
-        await setDoc(
-          doc(collection(doc(db, "users", email), "slots"), String(slot)),
-          { code: codeId, label, updatedAt: serverTimestamp() },
-          { merge: true }
-        );
-      } catch (mapErr) {
-        console.warn("Mapping users/slots non scritto (regole?):", mapErr);
-      }
-
-      console.log("✅ Salvato qrcodes/%s per email=%s slot=%s", codeId, email, slot);
+      console.log("✅ Scritto qrcodes/%s", codeId);
       alert("✅ QR registrato!");
       window.location.href = "profilo.html";
     } catch (e) {
       console.error("Errore durante il salvataggio:", e);
-      // Messaggi più chiari
-      const msg = (e && e.code) ? e.code : String(e);
-      if (String(msg).includes("permission-denied")) {
-        alert("❌ Permesso negato dalle regole Firestore (controlla le Security Rules).");
-      } else {
-        alert("❌ Errore durante il salvataggio. Guarda la console per i dettagli.");
-      }
+      alert("❌ Errore durante il salvataggio. Vedi console.");
     }
   };
 
-  // Elimina
+  // Elimina SOLO qrcodes/BT-0002
   window.eliminaQR = async () => {
-    const raw = codeInput.value;
-    const found = await pickExistingCodeId(raw);
-    if (!found) return alert("Inserisci un codice esistente (BT-xxx o BT-xxxx) da eliminare.");
-    const ok = confirm(`Sei sicuro di voler eliminare ${found.id}?`);
-    if (!ok) return;
+    const codeId = normCode(codeInput.value);
+    if (!codeId) return alert("Inserisci il codice (BT-0002) da eliminare.");
+    if (!confirm(`Eliminare ${codeId}?`)) return;
 
     try {
-      await deleteDoc(doc(db, "qrcodes", found.id));
-      try {
-        await setDoc(
-          doc(collection(doc(db, "users", email), "slots"), String(slot)),
-          { code: null, label: null, updatedAt: serverTimestamp() },
-          { merge: true }
-        );
-      } catch (mapErr) {
-        console.warn("Mapping users/slots non pulito (regole?):", mapErr);
-      }
+      await deleteDoc(doc(db, "qrcodes", codeId));
       alert("QR eliminato.");
       window.location.href = "profilo.html";
     } catch (e) {
       console.error("Errore durante l'eliminazione:", e);
-      alert("Errore durante l'eliminazione. Guarda la console per i dettagli.");
+      alert("Errore durante l'eliminazione. Vedi console.");
     }
   };
 </script>
