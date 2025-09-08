@@ -67,20 +67,12 @@
   </div>
 
   <!-- Script in fondo, chiuso correttamente -->
- <script type="module">
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc,
-    updateDoc,
-    deleteDoc,
-    serverTimestamp,
-    collection
+    getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp, collection
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // --- Firebase ---
   const firebaseConfig = {
     apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
     authDomain: "backtag-16de3.firebaseapp.com",
@@ -93,13 +85,11 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // --- DOM ---
   const codeInput = document.getElementById("code");
   const labelInput = document.getElementById("label");
   const messageInput = document.getElementById("message");
   const deleteBtn = document.getElementById("deleteBtn");
 
-  // --- Params/Session ---
   const params = new URLSearchParams(window.location.search);
   const slot = parseInt(params.get("slot"));
   const email = localStorage.getItem("email");
@@ -109,58 +99,71 @@
     window.location.href = "profilo.html";
   }
 
-  // Helper: normalizza a BT-0000
-  const normCode = (raw) => {
-    const c = raw.trim().toUpperCase();
-    // Accetta BT0001 -> BT-0001, BT-0001 rimane uguale
-    const m = c.match(/^BT-?\d{4}$/);
-    if (!m) return null;
+  // Crea le possibili varianti ID: BT-0002 e BT-002
+  const buildCandidates = (raw) => {
+    const c = (raw || "").trim().toUpperCase();
+    const m = c.match(/^BT-?\d{1,4}$/);
+    if (!m) return [];
     const digits = c.replace(/[^\d]/g, "");
-    return `BT-${digits.padStart(4, "0")}`;
+    const padded = `BT-${digits.padStart(4, "0")}`;
+    const compact = `BT-${String(parseInt(digits, 10))}`.replace("BT-NaN","BT-");
+    // Rimuovi duplicati e valori strani
+    return Array.from(new Set([padded, compact])).filter(x => /^BT-\d{1,4}$/.test(x));
+  };
+
+  // Trova quale dei candidati ESISTE realmente in Firestore
+  const pickExistingCodeId = async (raw) => {
+    const candidates = buildCandidates(raw);
+    for (const id of candidates) {
+      const snap = await getDoc(doc(db, "qrcodes", id));
+      if (snap.exists()) return { id, data: snap.data() };
+    }
+    return null;
   };
 
   // Prefill (se passi ?code=BT-0002 nell’URL lo carica)
   const codeParam = params.get("code");
   if (codeParam) {
     (async () => {
-      const codeId = normCode(codeParam);
-      if (codeId) {
-        const snap = await getDoc(doc(db, "qrcodes", codeId));
-        if (snap.exists()) {
-          const d = snap.data();
-          codeInput.value = d.code || codeId;
-          labelInput.value = d.label || "";
-          messageInput.value = d.message || "";
-          if (d.status === "registered") deleteBtn.style.display = "inline-block";
-        }
+      const found = await pickExistingCodeId(codeParam);
+      if (found) {
+        codeInput.value = found.id;
+        labelInput.value = found.data.label || "";
+        messageInput.value = found.data.message || "";
+        if (found.data.status === "registered") deleteBtn.style.display = "inline-block";
+      } else {
+        // fallback: normalizza a 4 cifre in input
+        const digits = codeParam.replace(/[^\d]/g, "");
+        codeInput.value = `BT-${digits.padStart(4,"0")}`;
       }
     })().catch(console.error);
   }
 
   // Salva/Registra
   window.registraQR = async () => {
-    const codeId = normCode(codeInput.value);
+    const raw = codeInput.value;
     const label = labelInput.value.trim();
     const message = messageInput.value.trim();
 
-    if (!codeId) return alert("Codice non valido. Usa il formato BT-0001 (o BT0001).");
-    if (!label || !message) return alert("Completa tutti i campi.");
+    if (!raw || !label || !message) return alert("Completa tutti i campi.");
 
     try {
+      const found = await pickExistingCodeId(raw);
+      if (!found) {
+        alert("Questo codice non esiste nel database. Controlla l'ID in Firestore (BT-xxx o BT-xxxx).");
+        return;
+      }
+
+      const codeId = found.id;
       const codeDocRef = doc(db, "qrcodes", codeId);
-      const existing = await getDoc(codeDocRef);
 
-      if (!existing.exists()) {
-        return alert("Questo codice non esiste nel database. Controlla il BT-xxxx pre-caricato.");
+      // Blocco doppie registrazioni
+      if (found.data.status === "registered" && found.data.email && found.data.email !== email) {
+        alert("Questo QR risulta già registrato.");
+        return;
       }
 
-      // Se già registrato da altri, blocca
-      const data = existing.data();
-      if (data.status === "registered" && data.email && data.email !== email) {
-        return alert("Questo QR risulta già registrato.");
-      }
-
-      // Aggiorna solo il doc del codice
+      // Aggiorna SOLO il doc del codice
       await setDoc(codeDocRef, {
         email,
         slotIndex: slot,
@@ -169,47 +172,63 @@
         message,
         status: "registered",
         updatedAt: serverTimestamp(),
-        ...(existing.exists() ? {} : { createdAt: serverTimestamp() })
+        ...(found.data ? {} : { createdAt: serverTimestamp() })
       }, { merge: true });
 
-      // (Opzionale) mappa utente→slot→codice per il profilo
-      await setDoc(
-        doc(collection(doc(db, "users", email), "slots"), String(slot)),
-        { code: codeId, label, updatedAt: serverTimestamp() },
-        { merge: true }
-      );
+      // Prova a scrivere il mapping utente→slot (se le regole lo bloccano, ignora l’errore)
+      try {
+        await setDoc(
+          doc(collection(doc(db, "users", email), "slots"), String(slot)),
+          { code: codeId, label, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+      } catch (mapErr) {
+        console.warn("Mapping users/slots non scritto (regole?):", mapErr);
+      }
 
+      console.log("✅ Salvato qrcodes/%s per email=%s slot=%s", codeId, email, slot);
       alert("✅ QR registrato!");
       window.location.href = "profilo.html";
     } catch (e) {
-      console.error(e);
-      alert("❌ Errore durante il salvataggio.");
+      console.error("Errore durante il salvataggio:", e);
+      // Messaggi più chiari
+      const msg = (e && e.code) ? e.code : String(e);
+      if (String(msg).includes("permission-denied")) {
+        alert("❌ Permesso negato dalle regole Firestore (controlla le Security Rules).");
+      } else {
+        alert("❌ Errore durante il salvataggio. Guarda la console per i dettagli.");
+      }
     }
   };
 
-  // Elimina: cancella SOLO il doc del codice indicato nel campo
+  // Elimina
   window.eliminaQR = async () => {
-    const codeId = normCode(codeInput.value);
-    if (!codeId) return alert("Inserisci il codice (BT-0001) da eliminare.");
-    const ok = confirm("Sei sicuro di voler eliminare questo QR?");
+    const raw = codeInput.value;
+    const found = await pickExistingCodeId(raw);
+    if (!found) return alert("Inserisci un codice esistente (BT-xxx o BT-xxxx) da eliminare.");
+    const ok = confirm(`Sei sicuro di voler eliminare ${found.id}?`);
     if (!ok) return;
 
     try {
-      await deleteDoc(doc(db, "qrcodes", codeId));
-      // pulisci mapping utente/slot (opzionale)
-      await setDoc(
-        doc(collection(doc(db, "users", email), "slots"), String(slot)),
-        { code: null, label: null, updatedAt: serverTimestamp() },
-        { merge: true }
-      );
+      await deleteDoc(doc(db, "qrcodes", found.id));
+      try {
+        await setDoc(
+          doc(collection(doc(db, "users", email), "slots"), String(slot)),
+          { code: null, label: null, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+      } catch (mapErr) {
+        console.warn("Mapping users/slots non pulito (regole?):", mapErr);
+      }
       alert("QR eliminato.");
       window.location.href = "profilo.html";
     } catch (e) {
-      console.error(e);
-      alert("Errore durante l'eliminazione.");
+      console.error("Errore durante l'eliminazione:", e);
+      alert("Errore durante l'eliminazione. Guarda la console per i dettagli.");
     }
   };
 </script>
+
 
   </body>
 </html>
