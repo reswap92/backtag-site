@@ -128,37 +128,49 @@
       }
     });
 
-    // Espongo funzioni globali per gli onclick
-    window.registraQR = async () => {
-      const code = codeInput.value.trim();
-      const label = labelInput.value.trim();
-      const message = messageInput.value.trim();
-      if (!code || !label || !message) {
-        alert("Completa tutti i campi.");
-        return;
-      }
+   // Espongo funzioni globali per gli onclick
+window.registraQR = async () => {
+  const code = codeInput.value.trim();      // es. "BT-0002" o "BT0002"
+  const label = labelInput.value.trim();
+  const message = messageInput.value.trim();
+  if (!code || !label || !message) {
+    alert("Completa tutti i campi.");
+    return;
+  }
 
-      try {
-        const snap = await getDoc(qrRef);
-        const exists = snap.exists();
+  // normalizza l'ID documento a "BT-0002"
+  const codeId = code.toUpperCase().replace(/^BT(\d{4})$/, "BT-$1");
 
-        await setDoc(qrRef, {
-          email,
-          slotIndex: slot,
-          code,
-          label,
-          message,
-          updatedAt: serverTimestamp(),
-          ...(exists ? {} : { createdAt: serverTimestamp() })
-        }, { merge: true });
+  try {
+    // scrivi nel documento del CODICE (es. qrcodes/BT-0002)
+    const codeDocRef = doc(db, "qrcodes", codeId);
+    const existing = await getDoc(codeDocRef);
 
-        alert("✅ Salvato!");
-        window.location.href = "profilo.html";
-      } catch (e) {
-        console.error("Errore salvataggio:", e);
-        alert("❌ Errore durante il salvataggio.");
-      }
-    };
+    await setDoc(codeDocRef, {
+      email,
+      slotIndex: slot,
+      code: codeId,
+      label,
+      message,
+      status: "registered",
+      updatedAt: serverTimestamp(),
+      ...(existing.exists() ? {} : { createdAt: serverTimestamp() })
+    }, { merge: true });
+
+    // pulizia: elimina l’eventuale vecchio doc email__slot per evitare doppioni
+    const oldId = `${email}__${slot}`;
+    if (oldId !== codeId) {
+      try { await deleteDoc(doc(db, "qrcodes", oldId)); } catch (_) {}
+    }
+
+    alert("✅ Salvato!");
+    window.location.href = "profilo.html";
+  } catch (e) {
+    console.error("Errore salvataggio:", e);
+    alert("❌ Errore durante il salvataggio.");
+  }
+};
+
 
     window.eliminaQR = async () => {
       const ok = confirm("Sei sicuro di voler eliminare questo QR?");
