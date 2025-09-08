@@ -67,124 +67,146 @@
   </div>
 
   <!-- Script in fondo, chiuso correttamente -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore,
-      doc,
-      getDoc,
-      setDoc,
-      deleteDoc,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+ <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    deleteDoc,
+    serverTimestamp,
+    collection
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // --- Firebase ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
-      authDomain: "backtag-16de3.firebaseapp.com",
-      projectId: "backtag-16de3",
-      storageBucket: "backtag-16de3.appspot.com",
-      messagingSenderId: "415455463905",
-      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
-      measurementId: "G-6565LXTZW7"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  // --- Firebase ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+    authDomain: "backtag-16de3.firebaseapp.com",
+    projectId: "backtag-16de3",
+    storageBucket: "backtag-16de3.appspot.com",
+    messagingSenderId: "415455463905",
+    appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+    measurementId: "G-6565LXTZW7"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    // --- Riferimenti DOM ---
-    const codeInput = document.getElementById("code");
-    const labelInput = document.getElementById("label");
-    const messageInput = document.getElementById("message");
-    const deleteBtn = document.getElementById("deleteBtn");
+  // --- DOM ---
+  const codeInput = document.getElementById("code");
+  const labelInput = document.getElementById("label");
+  const messageInput = document.getElementById("message");
+  const deleteBtn = document.getElementById("deleteBtn");
 
-    // --- Parametri e sessione ---
-    const params = new URLSearchParams(window.location.search);
-    const slot = parseInt(params.get("slot"));
-    const email = localStorage.getItem("email");
+  // --- Params/Session ---
+  const params = new URLSearchParams(window.location.search);
+  const slot = parseInt(params.get("slot"));
+  const email = localStorage.getItem("email");
 
-    if (!email || Number.isNaN(slot)) {
-      alert("Errore: dati mancanti. Torna al profilo.");
-      window.location.href = "profilo.html";
-    }
+  if (!email || Number.isNaN(slot)) {
+    alert("Errore: dati mancanti. Torna al profilo.");
+    window.location.href = "profilo.html";
+  }
 
-    // Documento con ID fisso per email+slot
-    const docId = `${email}__${slot}`;
-    const qrRef = doc(db, "qrcodes", docId);
+  // Helper: normalizza a BT-0000
+  const normCode = (raw) => {
+    const c = raw.trim().toUpperCase();
+    // Accetta BT0001 -> BT-0001, BT-0001 rimane uguale
+    const m = c.match(/^BT-?\d{4}$/);
+    if (!m) return null;
+    const digits = c.replace(/[^\d]/g, "");
+    return `BT-${digits.padStart(4, "0")}`;
+  };
 
-    // Precompila se esiste già
-    window.addEventListener("DOMContentLoaded", async () => {
-      try {
-        const snap = await getDoc(qrRef);
+  // Prefill (se passi ?code=BT-0002 nell’URL lo carica)
+  const codeParam = params.get("code");
+  if (codeParam) {
+    (async () => {
+      const codeId = normCode(codeParam);
+      if (codeId) {
+        const snap = await getDoc(doc(db, "qrcodes", codeId));
         if (snap.exists()) {
           const d = snap.data();
-          codeInput.value = d.code || "";
+          codeInput.value = d.code || codeId;
           labelInput.value = d.label || "";
           messageInput.value = d.message || "";
-          deleteBtn.style.display = "inline-block";
+          if (d.status === "registered") deleteBtn.style.display = "inline-block";
         }
-      } catch (e) {
-        console.error("Errore lettura:", e);
-        alert("Errore nel caricamento dei dati.");
       }
-    });
-
-   // Espongo funzioni globali per gli onclick
-window.registraQR = async () => {
-  const code = codeInput.value.trim();      // es. "BT-0002" o "BT0002"
-  const label = labelInput.value.trim();
-  const message = messageInput.value.trim();
-  if (!code || !label || !message) {
-    alert("Completa tutti i campi.");
-    return;
+    })().catch(console.error);
   }
 
-  // normalizza l'ID documento a "BT-0002"
-  const codeId = code.toUpperCase().replace(/^BT(\d{4})$/, "BT-$1");
+  // Salva/Registra
+  window.registraQR = async () => {
+    const codeId = normCode(codeInput.value);
+    const label = labelInput.value.trim();
+    const message = messageInput.value.trim();
 
-  try {
-    // scrivi nel documento del CODICE (es. qrcodes/BT-0002)
-    const codeDocRef = doc(db, "qrcodes", codeId);
-    const existing = await getDoc(codeDocRef);
+    if (!codeId) return alert("Codice non valido. Usa il formato BT-0001 (o BT0001).");
+    if (!label || !message) return alert("Completa tutti i campi.");
 
-    await setDoc(codeDocRef, {
-      email,
-      slotIndex: slot,
-      code: codeId,
-      label,
-      message,
-      status: "registered",
-      updatedAt: serverTimestamp(),
-      ...(existing.exists() ? {} : { createdAt: serverTimestamp() })
-    }, { merge: true });
+    try {
+      const codeDocRef = doc(db, "qrcodes", codeId);
+      const existing = await getDoc(codeDocRef);
 
-    // pulizia: elimina l’eventuale vecchio doc email__slot per evitare doppioni
-    const oldId = `${email}__${slot}`;
-    if (oldId !== codeId) {
-      try { await deleteDoc(doc(db, "qrcodes", oldId)); } catch (_) {}
+      if (!existing.exists()) {
+        return alert("Questo codice non esiste nel database. Controlla il BT-xxxx pre-caricato.");
+      }
+
+      // Se già registrato da altri, blocca
+      const data = existing.data();
+      if (data.status === "registered" && data.email && data.email !== email) {
+        return alert("Questo QR risulta già registrato.");
+      }
+
+      // Aggiorna solo il doc del codice
+      await setDoc(codeDocRef, {
+        email,
+        slotIndex: slot,
+        code: codeId,
+        label,
+        message,
+        status: "registered",
+        updatedAt: serverTimestamp(),
+        ...(existing.exists() ? {} : { createdAt: serverTimestamp() })
+      }, { merge: true });
+
+      // (Opzionale) mappa utente→slot→codice per il profilo
+      await setDoc(
+        doc(collection(doc(db, "users", email), "slots"), String(slot)),
+        { code: codeId, label, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+
+      alert("✅ QR registrato!");
+      window.location.href = "profilo.html";
+    } catch (e) {
+      console.error(e);
+      alert("❌ Errore durante il salvataggio.");
     }
+  };
 
-    alert("✅ Salvato!");
-    window.location.href = "profilo.html";
-  } catch (e) {
-    console.error("Errore salvataggio:", e);
-    alert("❌ Errore durante il salvataggio.");
-  }
-};
+  // Elimina: cancella SOLO il doc del codice indicato nel campo
+  window.eliminaQR = async () => {
+    const codeId = normCode(codeInput.value);
+    if (!codeId) return alert("Inserisci il codice (BT-0001) da eliminare.");
+    const ok = confirm("Sei sicuro di voler eliminare questo QR?");
+    if (!ok) return;
 
-
-    window.eliminaQR = async () => {
-      const ok = confirm("Sei sicuro di voler eliminare questo QR?");
-      if (!ok) return;
-
-      try {
-        await deleteDoc(qrRef);
-        alert("QR eliminato.");
-        window.location.href = "profilo.html";
-      } catch (e) {
-        console.error("Errore eliminazione:", e);
-        alert("Errore durante l'eliminazione.");
-      }
-    };
-  </script>
-</body>
-</html>
+    try {
+      await deleteDoc(doc(db, "qrcodes", codeId));
+      // pulisci mapping utente/slot (opzionale)
+      await setDoc(
+        doc(collection(doc(db, "users", email), "slots"), String(slot)),
+        { code: null, label: null, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+      alert("QR eliminato.");
+      window.location.href = "profilo.html";
+    } catch (e) {
+      console.error(e);
+      alert("Errore durante l'eliminazione.");
+    }
+  };
+</script>
