@@ -69,11 +69,15 @@
 
   <!-- QR generation (client-side) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
+  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, setDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    /* 👇 AGGIUNTO: Storage */
+    import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-    // >>> Usa la tua configurazione (salvata nei nostri appunti)
+    // >>> Config tua
     const firebaseConfig = {
       apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
       authDomain: "backtag-16de3.firebaseapp.com",
@@ -86,9 +90,10 @@
 
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
+    const storage = getStorage(app); /* 👈 AGGIUNTO */
 
-    // Accessibili fuori per i bottoni
-    window._backtag = { db, writeBatch, doc, setDoc, serverTimestamp };
+    // Espongo oggetti
+    window._backtag = { db, storage, doc, setDoc, serverTimestamp, ref, uploadString, getDownloadURL };
   </script>
 </head>
 <body>
@@ -156,7 +161,7 @@
     }
 
     function makeQrCanvas(text, pxSize) {
-      // Usa qrious per generare un canvas QR
+      // Usa qrious per generare un canvas QR (per anteprima/stampa a video)
       const qr = new QRious({
         value: text,
         size: pxSize, // pixel canvas (solo per schermo; a stampa usiamo la box in cm)
@@ -164,6 +169,21 @@
       });
       return qr.canvas;
     }
+
+    // 👇 AGGIUNTO: QR hi-res per PNG + upload su Storage
+    function makeQrCanvasHiRes(text, pxSize = 1024) {
+      const qr = new QRious({ value: text, size: pxSize, level: 'H' });
+      return qr.canvas;
+    }
+    async function uploadQrPngToStorage(code, link) {
+      const { storage, ref, uploadString, getDownloadURL } = window._backtag;
+      const canvas = makeQrCanvasHiRes(link, 1024);           // alta risoluzione
+      const dataUrl = canvas.toDataURL('image/png');          // PNG base64
+      const pathRef = ref(storage, `qr/${code}.png`);         // es: qr/BT0001.png
+      await uploadString(pathRef, dataUrl, 'data_url', { contentType: 'image/png' });
+      return await getDownloadURL(pathRef);                   // URL pubblico del PNG
+    }
+    // 👆 FINE AGGIUNTE
 
     // Render di una cella QR (con seriale sotto)
     function renderCell(code, link) {
@@ -173,7 +193,7 @@
       const box = document.createElement('div');
       box.className = 'qr-box';
 
-      // Canvas QR (renderizzato a 512px per qualità)
+      // Canvas QR (renderizzato a 512px per qualità schermo)
       const cvs = makeQrCanvas(link, 512);
       cvs.style.width = '100%';
       cvs.style.height = '100%';
@@ -205,30 +225,33 @@
         grid.appendChild(renderCell(code, link));
       }
 
-      // Salvataggio Firestore (batch)
+      // Salvataggio Firestore (+ PNG su Storage)
       if (save) {
         try {
-          const { db, writeBatch, doc, setDoc, serverTimestamp } = window._backtag;
-          const batch = writeBatch(db);
+          const { db, doc, setDoc, serverTimestamp } = window._backtag;
           const now = serverTimestamp();
 
-          codes.forEach(code => {
+          for (const code of codes) {
             const link = buildLink(code);
-            const ref = doc(db, 'qrcodes', code); // docId = codice (es. BT0001)
-            batch.set(ref, {
+
+            // 👇 AGGIUNTO: salva PNG su Storage e ottieni URL
+            const storageUrl = await uploadQrPngToStorage(code, link);
+
+            // Salva/aggiorna documento in Firestore con anche storageUrl
+            await setDoc(doc(db, 'qrcodes', code), {
               code,
-              link,                // URL di destinazione
+              link,               // URL di destinazione
+              storageUrl,         // URL immagine PNG su Storage
               createdAt: now,
-              status: 'new',       // new | assigned | lost | disabled
+              status: 'new',      // new | assigned | lost | disabled
               scans: 0
             }, { merge: true });
-          });
+          }
 
-          await batch.commit();
-          status.innerHTML = `<span class="ok">✅ Salvati ${codes.length} codici su Firestore (collezione: qrcodes).</span>`;
+          status.innerHTML = `<span class="ok">✅ Salvati ${codes.length} QR (PNG su Storage + doc su Firestore).</span>`;
         } catch (e) {
           console.error(e);
-          status.innerHTML = `<span class="err">❌ Errore salvataggio Firestore: ${e?.message || e}</span>`;
+          status.innerHTML = `<span class="err">❌ Errore salvataggio: ${e?.message || e}</span>`;
         }
       } else {
         status.textContent = 'Anteprima pronta (non salvata).';
