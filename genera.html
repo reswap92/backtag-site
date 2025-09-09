@@ -3,75 +3,262 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Genera QR - BackTag</title>
+  <title>Genera QR - BackTag (Batch + Firestore)</title>
+
+  <!-- STILI -->
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #fefaf6;
-      color: #111;
-      text-align: center;
-      padding: 40px;
-      margin: 0;
+    :root {
+      --qr-cm: 2.5cm;       /* cambia in 3cm se vuoi più grande */
+      --gap: 0.35cm;
+      --brand: #a6947c;
+      --bg: #fefaf6;
+      --ink: #111;
     }
-    .logo {
-      height: 300px;
-      margin-bottom: 20px;
+    @media screen {
+      body { font-family: Arial, sans-serif; background: var(--bg); color: var(--ink); margin: 0; }
+      header { text-align: center; padding: 24px 16px; }
+      .logo { height: 120px; margin-bottom: 8px; }
+      h1 { margin: 8px 0 0; font-size: 22px; }
+      .panel { max-width: 980px; margin: 0 auto; padding: 16px; }
+      .controls {
+        display: grid; grid-template-columns: repeat(6, 1fr);
+        gap: 12px; align-items: end; background: #fff; padding: 16px; border-radius: 12px; border: 1px solid #ddd;
+      }
+      .controls .col { display: flex; flex-direction: column; gap: 6px; }
+      label { font-size: 13px; opacity: 0.8; }
+      input, select {
+        padding: 10px 12px; border: 1px solid #aaa; border-radius: 8px; font-size: 14px; width: 100%;
+      }
+      button {
+        padding: 12px 16px; border: 0; border-radius: 10px; background: var(--brand); color: #fff; font-weight: 600; cursor: pointer;
+      }
+      button.secondary { background: #333; }
+      .tip { font-size: 12px; opacity: 0.8; margin-top: 6px; }
+      .grid {
+        margin-top: 18px; display: grid; gap: var(--gap);
+        grid-template-columns: repeat(auto-fill, minmax(calc(var(--qr-cm) + 0.2cm), 1fr));
+      }
+      .cell {
+        background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      }
+      .qr-box {
+        width: var(--qr-cm); height: var(--qr-cm); display: grid; place-items: center;
+      }
+      .serial { margin-top: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; letter-spacing: 0.5px; }
+      .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+      .status { margin-top: 10px; font-size: 13px; }
+      .ok { color: #0a7a0a; }
+      .err { color: #a11212; }
     }
-    input {
-      padding: 12px;
-      font-size: 16px;
-      width: 300px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      border: 1px solid #aaa;
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 16px;
-      background-color: #a6947c;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .qr-output {
-      margin-top: 30px;
-    }
-    .qr-output img {
-      margin: 20px auto;
-      max-width: 200px;
+
+    /* STAMPA: griglia pulita, dimensioni in cm */
+    @media print {
+      @page { size: A4 portrait; margin: 10mm; }
+      header, .panel .controls, .actions, .status { display: none !important; }
+      body { background: #fff; }
+      .grid {
+        display: grid; gap: 0.4cm; /* stretto per ottimizzare */
+        grid-template-columns: repeat(7, var(--qr-cm)); /* 7 per riga (7 * 2.5cm = 17.5cm + gap) */
+        justify-content: start;
+      }
+      .cell { border: 0; padding: 0; }
+      .qr-box { width: var(--qr-cm); height: var(--qr-cm); }
+      .serial { font-size: 10px; text-align: center; }
     }
   </style>
+
+  <!-- QR generation (client-side) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js" integrity="sha512-3qQWcK9l3tCqlx1i4lTtR0nXzjI7cI+eOe5d9m0k+TrdJ0d3jQF+J9k7n3eZ+X0Xz3w2Jq8v1oV6fWq+P7xYyg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <!-- Firebase (modular v10 CDN) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, setDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // >>> Usa la tua configurazione (salvata nei nostri appunti)
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0kpQb-t5aJrMQ9mNnvJgl53Fe8UgPwrc",
+      authDomain: "backtag-16de3.firebaseapp.com",
+      projectId: "backtag-16de3",
+      storageBucket: "backtag-16de3.firebasestorage.app",
+      messagingSenderId: "415455463905",
+      appId: "1:415455463905:web:abd5e58bdeaaf6e3b9eaa0",
+      measurementId: "G-6565LXTZW7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    // Accessibili fuori per i bottoni
+    window._backtag = { db, writeBatch, doc, setDoc, serverTimestamp };
+  </script>
 </head>
 <body>
-  <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
-  <h1>Genera un QR Code</h1>
+  <header>
+    <img src="logo-backtag.png" alt="Logo BackTag" class="logo" />
+    <h1>Generatore QR BackTag — Batch + Salvataggio Firestore</h1>
+  </header>
 
-  <input id="codice" type="text" placeholder="Codice univoco (es. BT-0010)" />
-  <br />
-  <button onclick="generaQR()">Genera QR</button>
+  <div class="panel">
+    <div class="controls">
+      <div class="col">
+        <label>Prefisso</label>
+        <input id="prefix" type="text" value="BT" />
+      </div>
+      <div class="col">
+        <label>Padding numerico</label>
+        <input id="pad" type="number" min="1" max="6" value="4" />
+        <div class="tip">Esempio con 4 → BT0001</div>
+      </div>
+      <div class="col">
+        <label>Numero iniziale</label>
+        <input id="start" type="number" value="1" />
+      </div>
+      <div class="col">
+        <label>Quanti codici</label>
+        <input id="count" type="number" value="100" />
+      </div>
+      <div class="col">
+        <label>Lato QR (cm)</label>
+        <select id="size">
+          <option value="2.5" selected>2.5 cm (consigliato)</option>
+          <option value="3">3.0 cm (più leggibile)</option>
+        </select>
+      </div>
+      <div class="col">
+        <button id="genBtn">Genera & Salva</button>
+        <div class="tip">Crea i QR e salva su Firestore</div>
+      </div>
+    </div>
 
-  <div class="qr-output" id="output" style="display:none;">
-    <h2>QR Code generato</h2>
-    <img id="qrImg" src="" alt="QR Code" />
-    <p><strong>Link:</strong><br><span id="qrLink"></span></p>
+    <div class="actions">
+      <button class="secondary" id="previewBtn">Solo anteprima (non salva)</button>
+      <button class="secondary" onclick="window.print()">Stampa</button>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <div class="grid" id="grid"></div>
   </div>
 
   <script>
-    function generaQR() {
-      const codice = document.getElementById("codice").value.trim();
-      if (!codice) {
-        alert("Inserisci un codice univoco.");
-        return;
+    // Aggiorna la dimensione QR (cm) per schermo/stampa
+    function updateQrCm(cm) {
+      document.documentElement.style.setProperty('--qr-cm', cm + 'cm');
+    }
+
+    function buildCode(prefix, pad, num) {
+      const n = String(num).padStart(pad, '0');
+      return prefix + n;
+    }
+
+    function buildLink(code) {
+      // Link di destinazione quando si scansiona il QR:
+      return `https://backtag.it/trova.html?code=${encodeURIComponent(code)}`;
+    }
+
+    function makeQrCanvas(text, pxSize) {
+      // Usa qrious per generare un canvas QR
+      const qr = new QRious({
+        value: text,
+        size: pxSize, // pixel canvas (solo per schermo; a stampa usiamo la box in cm)
+        level: 'H',
+      });
+      return qr.canvas;
+    }
+
+    // Render di una cella QR (con seriale sotto)
+    function renderCell(code, link) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+
+      const box = document.createElement('div');
+      box.className = 'qr-box';
+
+      // Canvas QR (renderizzato a 512px per qualità)
+      const cvs = makeQrCanvas(link, 512);
+      cvs.style.width = '100%';
+      cvs.style.height = '100%';
+      box.appendChild(cvs);
+
+      const serial = document.createElement('div');
+      serial.className = 'serial';
+      serial.textContent = code;
+
+      cell.appendChild(box);
+      cell.appendChild(serial);
+      return cell;
+    }
+
+    async function generateBatch({ prefix, pad, start, count, save }) {
+      const grid = document.getElementById('grid');
+      const status = document.getElementById('status');
+      grid.innerHTML = '';
+      status.textContent = save ? 'Generazione in corso + salvataggio su Firestore…' : 'Generazione anteprima…';
+
+      const codes = [];
+      for (let i = 0; i < count; i++) {
+        codes.push(buildCode(prefix, pad, start + i));
       }
 
-      const link = `https://backtag.it/trova.html?code=${encodeURIComponent(codice)}`;
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(link)}&size=200x200`;
+      // Render UI
+      for (const code of codes) {
+        const link = buildLink(code);
+        grid.appendChild(renderCell(code, link));
+      }
 
-      document.getElementById("qrImg").src = qrUrl;
-      document.getElementById("qrLink").textContent = link;
-      document.getElementById("output").style.display = "block";
+      // Salvataggio Firestore (batch)
+      if (save) {
+        try {
+          const { db, writeBatch, doc, setDoc, serverTimestamp } = window._backtag;
+          const batch = writeBatch(db);
+          const now = serverTimestamp();
+
+          codes.forEach(code => {
+            const link = buildLink(code);
+            const ref = doc(db, 'qrcodes', code); // docId = codice (es. BT0001)
+            batch.set(ref, {
+              code,
+              link,                // URL di destinazione
+              createdAt: now,
+              status: 'new',       // new | assigned | lost | disabled
+              scans: 0
+            }, { merge: true });
+          });
+
+          await batch.commit();
+          status.innerHTML = `<span class="ok">✅ Salvati ${codes.length} codici su Firestore (collezione: qrcodes).</span>`;
+        } catch (e) {
+          console.error(e);
+          status.innerHTML = `<span class="err">❌ Errore salvataggio Firestore: ${e?.message || e}</span>`;
+        }
+      } else {
+        status.textContent = 'Anteprima pronta (non salvata).';
+      }
     }
+
+    // Event handlers
+    document.getElementById('genBtn').addEventListener('click', async () => {
+      const prefix = document.getElementById('prefix').value.trim() || 'BT';
+      const pad    = parseInt(document.getElementById('pad').value || '4', 10);
+      const start  = parseInt(document.getElementById('start').value || '1', 10);
+      const count  = parseInt(document.getElementById('count').value || '100', 10);
+      const sizeCm = parseFloat(document.getElementById('size').value || '2.5');
+
+      updateQrCm(sizeCm);
+      await generateBatch({ prefix, pad, start, count, save: true });
+    });
+
+    document.getElementById('previewBtn').addEventListener('click', async () => {
+      const prefix = document.getElementById('prefix').value.trim() || 'BT';
+      const pad    = parseInt(document.getElementById('pad').value || '4', 10);
+      const start  = parseInt(document.getElementById('start').value || '1', 10);
+      const count  = parseInt(document.getElementById('count').value || '100', 10);
+      const sizeCm = parseFloat(document.getElementById('size').value || '2.5');
+
+      updateQrCm(sizeCm);
+      await generateBatch({ prefix, pad, start, count, save: false });
+    });
   </script>
 </body>
 </html>
